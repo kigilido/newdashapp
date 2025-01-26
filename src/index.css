@@ -55,3 +55,7 @@
 .input-area {
   @apply glass-panel fixed bottom-0 left-0 right-0 p-4 border-t border-border/50;
 }
+
+.category-toggle {
+  @apply transition-transform duration-300;
+}
