@@ -10,7 +10,7 @@ const Home = () => {
       <div className="glass-panel max-w-md w-full p-8 rounded-2xl space-y-8 animate-fade-in">
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-            MessagingMingle
+            DASH
           </h1>
           <p className="text-muted-foreground">
             Connect with friends and colleagues through personal and general conversations
