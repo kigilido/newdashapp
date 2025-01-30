@@ -15,8 +15,6 @@ const VerifyCode = () => {
   const handleComplete = (value: string) => {
     setCode(value);
     if (value.length === 6) {
-      // Here we would typically verify the code
-      // For now, we'll just navigate to the main app
       toast({
         title: "Verification successful",
         description: "Welcome to DASH!",
@@ -39,8 +37,8 @@ const VerifyCode = () => {
             onChange={(value) => handleComplete(value)}
             render={({ slots }) => (
               <InputOTPGroup className="gap-2">
-                {slots.map((slot, index) => (
-                  <InputOTPSlot key={index} {...slot} index={index} />
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <InputOTPSlot key={index} {...slots[index]} index={index} />
                 ))}
               </InputOTPGroup>
             )}
