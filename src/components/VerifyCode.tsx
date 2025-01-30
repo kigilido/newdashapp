@@ -39,8 +39,8 @@ const VerifyCode = () => {
             onChange={(value) => handleComplete(value)}
             render={({ slots }) => (
               <InputOTPGroup className="gap-2">
-                {slots.map((slot, idx) => (
-                  <InputOTPSlot key={idx} {...slot} index={idx} />
+                {slots.map((slot, index) => (
+                  <InputOTPSlot key={index} {...slot} index={index} />
                 ))}
               </InputOTPGroup>
             )}
