@@ -5,11 +5,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Home from "./pages/Home";
-import Index from "./pages/Index";
 import SplashScreen from "./components/SplashScreen";
 import PhoneAuth from "./components/PhoneAuth";
 import VerifyCode from "./components/VerifyCode";
 import MainLayout from "./components/MainLayout";
+import RssFeed from "./pages/RssFeed";
+import ChatScreen from "./pages/ChatScreen";
+import ScanScreen from "./pages/ScanScreen";
+import MapScreen from "./pages/MapScreen";
+import SettingsScreen from "./pages/SettingsScreen";
 
 const queryClient = new QueryClient();
 
@@ -39,11 +43,11 @@ const App = () => {
             <Route path="/auth" element={<PhoneAuth />} />
             <Route path="/verify" element={<VerifyCode />} />
             <Route path="/app" element={<MainLayout />}>
-              <Route path="rss" element={<div>RSS Feed</div>} />
-              <Route path="chat" element={<Index />} />
-              <Route path="scan" element={<div>Scan</div>} />
-              <Route path="map" element={<div>Map</div>} />
-              <Route path="settings" element={<div>Settings</div>} />
+              <Route path="rss" element={<RssFeed />} />
+              <Route path="chat" element={<ChatScreen />} />
+              <Route path="scan" element={<ScanScreen />} />
+              <Route path="map" element={<MapScreen />} />
+              <Route path="settings" element={<SettingsScreen />} />
               <Route index element={<Navigate to="/app/rss" replace />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
