@@ -3,48 +3,50 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { toast } from "./ui/use-toast";
 import { ArrowLeft } from "lucide-react";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
+import { OTPInput } from "./ui/input-otp";
 
 const VerifyCode = () => {
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const phoneNumber = sessionStorage.getItem("phoneNumber");
 
-  if (!phoneNumber) {
-    navigate("/auth");
-    return null;
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const phoneNumber = sessionStorage.getItem("phoneNumber");
+    
+    if (!phoneNumber) {
+      navigate("/auth");
+      return;
+    }
 
-  const handleComplete = async (value: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/verify-code", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          phoneNumber,
-          code: value,
-        }),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-code`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ phoneNumber, code }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Invalid verification code");
       }
 
+      const { session } = await response.json();
+      
+      // Store the session
+      localStorage.setItem("session", JSON.stringify(session));
+      
       toast({
         title: "Success",
         description: "Phone number verified successfully",
       });
       
-      // Clear the phone number from session storage
-      sessionStorage.removeItem("phoneNumber");
       navigate("/app");
     } catch (error) {
       toast({
@@ -52,7 +54,6 @@ const VerifyCode = () => {
         description: "Invalid verification code. Please try again.",
         variant: "destructive",
       });
-      setCode("");
     } finally {
       setIsLoading(false);
     }
@@ -70,36 +71,28 @@ const VerifyCode = () => {
           Back
         </Button>
         <div className="text-center">
-          <h2 className="text-2xl font-bold">Verify your phone</h2>
+          <h2 className="text-2xl font-bold">Verify Your Phone</h2>
           <p className="text-muted-foreground mt-2">
-            Enter the code sent to {phoneNumber}
+            Enter the code we sent to your phone
           </p>
         </div>
-        <div className="flex flex-col items-center justify-center space-y-4">
-          <InputOTP
-            maxLength={6}
-            value={code}
-            onChange={setCode}
-            onComplete={handleComplete}
-            disabled={isLoading}
-          >
-            <InputOTPGroup>
-              <InputOTPSlot index={0} />
-              <InputOTPSlot index={1} />
-              <InputOTPSlot index={2} />
-              <InputOTPSlot index={3} />
-              <InputOTPSlot index={4} />
-              <InputOTPSlot index={5} />
-            </InputOTPGroup>
-          </InputOTP>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex justify-center">
+            <OTPInput
+              value={code}
+              onChange={setCode}
+              maxLength={6}
+              disabled={isLoading}
+            />
+          </div>
           <Button
-            variant="link"
-            onClick={() => navigate("/auth")}
-            disabled={isLoading}
+            type="submit"
+            className="w-full"
+            disabled={code.length !== 6 || isLoading}
           >
-            Didn't receive a code? Try again
+            {isLoading ? "Verifying..." : "Verify"}
           </Button>
-        </div>
+        </form>
       </div>
     </div>
   );

@@ -23,13 +23,17 @@ const PhoneAuth = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch("/api/send-verification", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ phoneNumber }),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-verification`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ phoneNumber }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to send verification code");
