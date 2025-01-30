@@ -60,7 +60,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
-      <Header />
+      <Header title="Messages" />
       <CategoryToggle category={activeCategory} onToggle={toggleCategory} />
       
       <main className="max-w-4xl mx-auto px-4 py-20 pb-32 flex">
