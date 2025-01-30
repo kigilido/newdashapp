@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { toast } from "./ui/use-toast";
+import { ArrowLeft } from "lucide-react";
 
 const PhoneAuth = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -26,6 +27,14 @@ const PhoneAuth = () => {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8 animate-fade-in">
+        <Button
+          variant="ghost"
+          className="absolute top-4 left-4"
+          onClick={() => navigate("/")}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
         <div className="text-center">
           <h2 className="text-2xl font-bold">Welcome to DASH</h2>
           <p className="text-muted-foreground mt-2">Enter your phone number to continue</p>
