@@ -7,9 +7,10 @@ import { ArrowLeft } from "lucide-react";
 
 const PhoneAuth = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (phoneNumber.length < 10) {
       toast({
@@ -19,9 +20,38 @@ const PhoneAuth = () => {
       });
       return;
     }
-    // Here we would typically send the verification code
-    // For now, we'll just navigate to the verification page
-    navigate("/verify");
+
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/send-verification", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ phoneNumber }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send verification code");
+      }
+
+      toast({
+        title: "Verification code sent",
+        description: "Please check your phone for the verification code",
+      });
+      
+      // Store the phone number in session storage for verification
+      sessionStorage.setItem("phoneNumber", phoneNumber);
+      navigate("/verify");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send verification code. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -46,9 +76,10 @@ const PhoneAuth = () => {
             value={phoneNumber}
             onChange={(e) => setPhoneNumber(e.target.value)}
             className="text-lg"
+            disabled={isLoading}
           />
-          <Button type="submit" className="w-full">
-            Continue
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? "Sending..." : "Continue"}
           </Button>
         </form>
       </div>

@@ -7,26 +7,60 @@ import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
-} from "./ui/input-otp";
+} from "@/components/ui/input-otp";
 
 const VerifyCode = () => {
   const [code, setCode] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const phoneNumber = sessionStorage.getItem("phoneNumber");
 
-  const handleComplete = (value: string) => {
-    setCode(value);
-    if (value.length === 6) {
-      toast({
-        title: "Verification successful",
-        description: "Welcome to DASH!",
+  if (!phoneNumber) {
+    navigate("/auth");
+    return null;
+  }
+
+  const handleComplete = async (value: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/verify-code", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          phoneNumber,
+          code: value,
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error("Invalid verification code");
+      }
+
+      toast({
+        title: "Success",
+        description: "Phone number verified successfully",
+      });
+      
+      // Clear the phone number from session storage
+      sessionStorage.removeItem("phoneNumber");
       navigate("/app");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Invalid verification code. Please try again.",
+        variant: "destructive",
+      });
+      setCode("");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8 animate-fade-in">
+      <div className="w-full max-w-md space-y-8">
         <Button
           variant="ghost"
           className="absolute top-4 left-4"
@@ -36,22 +70,35 @@ const VerifyCode = () => {
           Back
         </Button>
         <div className="text-center">
-          <h2 className="text-2xl font-bold">Verify your number</h2>
-          <p className="text-muted-foreground mt-2">Enter the 6-digit code we sent you</p>
+          <h2 className="text-2xl font-bold">Verify your phone</h2>
+          <p className="text-muted-foreground mt-2">
+            Enter the code sent to {phoneNumber}
+          </p>
         </div>
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center justify-center space-y-4">
           <InputOTP
             maxLength={6}
             value={code}
-            onChange={(value) => handleComplete(value)}
-            render={({ slots }) => (
-              <InputOTPGroup className="gap-2">
-                {Array.from({ length: 6 }).map((_, index) => (
-                  <InputOTPSlot key={index} {...slots[index]} index={index} />
-                ))}
-              </InputOTPGroup>
-            )}
-          />
+            onChange={setCode}
+            onComplete={handleComplete}
+            disabled={isLoading}
+          >
+            <InputOTPGroup>
+              <InputOTPSlot index={0} />
+              <InputOTPSlot index={1} />
+              <InputOTPSlot index={2} />
+              <InputOTPSlot index={3} />
+              <InputOTPSlot index={4} />
+              <InputOTPSlot index={5} />
+            </InputOTPGroup>
+          </InputOTP>
+          <Button
+            variant="link"
+            onClick={() => navigate("/auth")}
+            disabled={isLoading}
+          >
+            Didn't receive a code? Try again
+          </Button>
         </div>
       </div>
     </div>
