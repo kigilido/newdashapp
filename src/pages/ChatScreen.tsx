@@ -6,7 +6,7 @@ import { useState } from "react";
 const ChatScreen = () => {
   const [messages, setMessages] = useState<Array<{ content: string; sent: boolean; timestamp: string }>>([
     {
-      content: "Welcome to the chat! TalkJS integration is currently disabled.",
+      content: "Welcome to the chat! How can I help you today?",
       sent: false,
       timestamp: new Date().toLocaleTimeString(),
     },
@@ -25,8 +25,7 @@ const ChatScreen = () => {
 
   return (
     <div className="space-y-4 h-[calc(100vh-12rem)]">
-      <h1 className="text-2xl font-bold">Messages</h1>
-      <Card className="p-4 h-[calc(100%-6rem)] flex flex-col">
+      <Card className="p-4 h-[calc(100%-2rem)] flex flex-col bg-white/50 backdrop-blur-sm border-white/20">
         <div className="flex-1 overflow-y-auto space-y-4 p-4">
           {messages.map((message, index) => (
             <MessageBubble

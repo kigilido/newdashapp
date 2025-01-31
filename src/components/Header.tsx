@@ -20,21 +20,21 @@ export const Header = ({ title, showBack = false }: HeaderProps) => {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border/50">
+    <header className="fixed top-0 left-0 right-0 z-10 bg-white/80 backdrop-blur-lg border-b border-border/50">
       <div className="max-w-4xl mx-auto p-4 flex items-center justify-between">
         {showBack ? (
-          <Button variant="ghost" size="icon" onClick={handleBack} className="hover:bg-accent">
-            <ArrowLeft className="h-5 w-5" />
+          <Button variant="ghost" size="icon" onClick={handleBack} className="hover:bg-violet-50">
+            <ArrowLeft className="h-5 w-5 text-violet-600" />
           </Button>
         ) : (
-          <Button variant="ghost" size="icon" className="hover:bg-accent">
-            <Menu className="h-5 w-5" />
+          <Button variant="ghost" size="icon" className="hover:bg-violet-50">
+            <Menu className="h-5 w-5 text-violet-600" />
           </Button>
         )}
-        <h1 className="text-lg font-semibold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+        <h1 className="text-lg font-semibold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
           {title}
         </h1>
-        <div className="w-10" /> {/* Spacer for alignment */}
+        <div className="w-10" />
       </div>
     </header>
   );

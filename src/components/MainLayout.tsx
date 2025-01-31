@@ -20,12 +20,12 @@ const MainLayout = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-background to-muted/50">
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-purple-50 via-white to-purple-50">
       <Header title={getTitle()} showBack={location.pathname !== "/app/rss"} />
       <main className="flex-1 container mx-auto p-4 pb-20 mt-16">
         <Outlet />
       </main>
-      <nav className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-lg border-t border-border/50">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t border-border/50">
         <div className="flex justify-around items-center h-16 max-w-4xl mx-auto px-4">
           {navItems.map(({ icon: Icon, label, path }) => (
             <NavLink
@@ -34,9 +34,9 @@ const MainLayout = () => {
               className={({ isActive }) =>
                 cn(
                   "flex flex-col items-center p-2 rounded-lg transition-colors",
-                  "hover:bg-accent hover:text-accent-foreground",
+                  "hover:bg-violet-50",
                   isActive
-                    ? "text-primary bg-primary/10"
+                    ? "text-violet-600 bg-violet-50"
                     : "text-muted-foreground"
                 )
               }
