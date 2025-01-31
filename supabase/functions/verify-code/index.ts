@@ -10,9 +10,10 @@ serve(async (req) => {
 
   try {
     const { phoneNumber, code } = await req.json()
-    console.log(`Verifying code for phone number: ${phoneNumber}`)
+    console.log(`Verifying code for phone number: ${phoneNumber}, code: ${code}`)
     
     if (!phoneNumber || !code) {
+      console.error('Missing required fields:', { phoneNumber: !!phoneNumber, code: !!code })
       throw new Error('Phone number and verification code are required')
     }
 
@@ -38,9 +39,12 @@ serve(async (req) => {
       .eq('phone_number', phoneNumber)
       .eq('code', code)
       .gt('expires_at', new Date().toISOString())
-      .maybeSingle()
+      .single()
 
-    console.log('Verification data:', verificationData)
+    console.log('Verification query result:', { 
+      found: !!verificationData,
+      error: verificationError?.message || 'none'
+    })
     
     if (verificationError) {
       console.error('Database error:', verificationError)
@@ -48,7 +52,7 @@ serve(async (req) => {
     }
 
     if (!verificationData) {
-      console.error('Invalid or expired code')
+      console.error('No valid verification code found')
       throw new Error('Invalid or expired code')
     }
 
@@ -63,24 +67,25 @@ serve(async (req) => {
     }
 
     // Create or update user in auth
-    const { data: userData, error: userError } = await supabase.auth.signUp({
+    const { data: { user, session }, error: userError } = await supabase.auth.signUp({
       phone: phoneNumber,
       password: crypto.randomUUID(), // Generate a random password
     })
 
     if (userError) {
-      console.error('Error creating user:', userError)
+      console.error('Error creating/updating user:', userError)
       throw userError
     }
 
-    if (!userData.session) {
-      throw new Error('No session returned after authentication')
+    if (!session) {
+      console.error('No session returned after authentication')
+      throw new Error('Authentication failed - no session returned')
     }
 
-    console.log('User authenticated successfully')
+    console.log('User authenticated successfully:', { userId: user?.id })
 
     return new Response(
-      JSON.stringify({ success: true, session: userData.session }),
+      JSON.stringify({ success: true, session }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
@@ -88,7 +93,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error.message || 'An error occurred during verification',
-        details: error
+        details: error instanceof Error ? { stack: error.stack } : error
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
