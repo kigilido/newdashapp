@@ -12,6 +12,8 @@ import ChatScreen from "./pages/ChatScreen";
 import ScanScreen from "./pages/ScanScreen";
 import MapScreen from "./pages/MapScreen";
 import SettingsScreen from "./pages/SettingsScreen";
+import PhoneAuth from "./components/PhoneAuth";
+import VerifyCode from "./components/VerifyCode";
 
 const queryClient = new QueryClient();
 
@@ -37,7 +39,9 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Navigate to="/app/chat" replace />} />
+            <Route path="/" element={<Navigate to="/auth" replace />} />
+            <Route path="/auth" element={<PhoneAuth />} />
+            <Route path="/verify" element={<VerifyCode />} />
             <Route path="/app" element={<MainLayout />}>
               <Route path="rss" element={<RssFeed />} />
               <Route path="chat" element={<ChatScreen />} />
@@ -46,7 +50,7 @@ const App = () => {
               <Route path="settings" element={<SettingsScreen />} />
               <Route index element={<Navigate to="/app/chat" replace />} />
             </Route>
-            <Route path="*" element={<Navigate to="/app/chat" replace />} />
+            <Route path="*" element={<Navigate to="/auth" replace />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
