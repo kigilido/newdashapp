@@ -1,4 +1,3 @@
-import type Talk from "talkjs";
 import { supabase } from "@/integrations/supabase/client";
 
 // Access the global Talk object that was loaded via the script tag

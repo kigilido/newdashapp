@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
-import { initTalkJS } from "@/utils/talkjs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { initTalkJS } from "@/utils/talkjs";
 
 const ChatScreen = () => {
   const chatboxEl = useRef<HTMLDivElement>(null);
