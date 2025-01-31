@@ -15,6 +15,11 @@ serve(async (req) => {
     const { phoneNumber } = await req.json()
     console.log('Received request to send verification code to:', phoneNumber)
 
+    // Validate phone number format
+    if (!phoneNumber || !phoneNumber.match(/^\+1\d{10}$/)) {
+      throw new Error('Invalid phone number format. Must be +1 followed by 10 digits')
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
@@ -26,8 +31,10 @@ serve(async (req) => {
 
     if (!accountSid || !authToken || !twilioPhone) {
       console.error('Missing Twilio credentials')
-      throw new Error('Missing Twilio credentials')
+      throw new Error('Server configuration error: Missing Twilio credentials')
     }
+
+    console.log('Twilio configuration found:', { accountSid, twilioPhone })
 
     const otp = generateOTP()
     console.log('Generated OTP:', otp)
@@ -43,13 +50,15 @@ serve(async (req) => {
 
     if (dbError) {
       console.error('Database error:', dbError)
-      throw dbError
+      throw new Error('Failed to store verification code')
     }
 
     console.log('OTP stored in database successfully')
 
     // Send SMS via Twilio
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`
+    console.log('Sending SMS via Twilio...')
+    
     const twilioResponse = await fetch(twilioUrl, {
       method: 'POST',
       headers: {
@@ -81,7 +90,15 @@ serve(async (req) => {
           }
         )
       }
-      throw new Error(`Twilio error: ${twilioData.message}`)
+
+      // Log detailed Twilio error
+      console.error('Twilio error details:', {
+        status: twilioResponse.status,
+        statusText: twilioResponse.statusText,
+        data: twilioData
+      })
+      
+      throw new Error(`Twilio error: ${twilioData.message || 'Failed to send SMS'}`)
     }
 
     console.log('SMS sent successfully')
@@ -93,7 +110,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in send-verification function:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: error instanceof Error ? error.stack : undefined
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     )
   }
