@@ -13,6 +13,8 @@ serve(async (req) => {
 
   try {
     const { phoneNumber } = await req.json()
+    console.log('Received request to send verification code to:', phoneNumber)
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
@@ -23,10 +25,12 @@ serve(async (req) => {
     const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER')
 
     if (!accountSid || !authToken || !twilioPhone) {
+      console.error('Missing Twilio credentials')
       throw new Error('Missing Twilio credentials')
     }
 
     const otp = generateOTP()
+    console.log('Generated OTP:', otp)
     
     // Store OTP in Supabase with expiration
     const { error: dbError } = await supabase
@@ -37,7 +41,12 @@ serve(async (req) => {
         expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString() // 10 minutes expiration
       })
 
-    if (dbError) throw dbError
+    if (dbError) {
+      console.error('Database error:', dbError)
+      throw dbError
+    }
+
+    console.log('OTP stored in database successfully')
 
     // Send SMS via Twilio
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`
@@ -50,20 +59,26 @@ serve(async (req) => {
       body: new URLSearchParams({
         To: phoneNumber,
         From: twilioPhone,
-        Body: `Your verification code is: ${otp}`
+        Body: `Your DASH verification code is: ${otp}`
       })
     })
 
+    const twilioData = await twilioResponse.json()
+    console.log('Twilio API response:', twilioData)
+
     if (!twilioResponse.ok) {
-      const twilioError = await twilioResponse.json()
-      throw new Error(`Twilio error: ${twilioError.message}`)
+      console.error('Twilio error:', twilioData)
+      throw new Error(`Twilio error: ${twilioData.message}`)
     }
+
+    console.log('SMS sent successfully')
 
     return new Response(
       JSON.stringify({ success: true }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
+    console.error('Error in send-verification function:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
