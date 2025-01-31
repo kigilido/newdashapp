@@ -10,7 +10,7 @@ serve(async (req) => {
 
   try {
     const { phoneNumber, code } = await req.json()
-    console.log(`Verifying code for phone number: ${phoneNumber}, code: ${code}`)
+    console.log(`Attempting to verify code. Phone: ${phoneNumber}, Code: ${code}`)
     
     if (!phoneNumber || !code) {
       console.error('Missing required fields:', { phoneNumber: !!phoneNumber, code: !!code })
@@ -32,28 +32,40 @@ serve(async (req) => {
       console.error('Error cleaning up expired codes:', cleanupError)
     }
 
+    // Log current time for debugging
+    const currentTime = new Date().toISOString()
+    console.log('Current time:', currentTime)
+
     // Check if code exists and is valid
-    const { data: verificationData, error: verificationError } = await supabase
+    const { data: codes, error: listError } = await supabase
       .from('verification_codes')
       .select('*')
       .eq('phone_number', phoneNumber)
-      .eq('code', code)
-      .gt('expires_at', new Date().toISOString())
-      .single()
+      .order('created_at', { ascending: false })
+      .limit(1)
 
-    console.log('Verification query result:', { 
-      found: !!verificationData,
-      error: verificationError?.message || 'none'
-    })
-    
-    if (verificationError) {
-      console.error('Database error:', verificationError)
+    if (listError) {
+      console.error('Error fetching verification codes:', listError)
       throw new Error('Database error while verifying code')
     }
 
-    if (!verificationData) {
-      console.error('No valid verification code found')
-      throw new Error('Invalid or expired code')
+    console.log('Found verification codes:', codes)
+
+    const verificationCode = codes?.[0]
+    
+    if (!verificationCode) {
+      console.error('No verification code found for this phone number')
+      throw new Error('No verification code found')
+    }
+
+    if (new Date(verificationCode.expires_at) < new Date()) {
+      console.error('Code has expired. Expiry:', verificationCode.expires_at)
+      throw new Error('Code has expired')
+    }
+
+    if (verificationCode.code !== code) {
+      console.error('Code mismatch. Expected:', verificationCode.code, 'Got:', code)
+      throw new Error('Invalid code')
     }
 
     // Delete the used code
