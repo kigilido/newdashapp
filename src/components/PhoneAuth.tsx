@@ -11,21 +11,45 @@ const PhoneAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
+  const formatPhoneNumber = (value: string) => {
+    // Remove all non-numeric characters
+    const numbers = value.replace(/\D/g, "");
+    
+    // Format as (XXX) XXX-XXXX
+    if (numbers.length <= 3) {
+      return numbers;
+    } else if (numbers.length <= 6) {
+      return `(${numbers.slice(0, 3)}) ${numbers.slice(3)}`;
+    } else {
+      return `(${numbers.slice(0, 3)}) ${numbers.slice(3, 6)}-${numbers.slice(6, 10)}`;
+    }
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhoneNumber(e.target.value);
+    setPhoneNumber(formatted);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (phoneNumber.length < 10) {
+    
+    // Convert formatted number to E.164 format (+1XXXXXXXXXX)
+    const cleanNumber = phoneNumber.replace(/\D/g, "");
+    if (cleanNumber.length !== 10) {
       toast({
         title: "Invalid phone number",
-        description: "Please enter a valid phone number",
+        description: "Please enter a valid 10-digit phone number",
         variant: "destructive",
       });
       return;
     }
 
+    const e164Number = `+1${cleanNumber}`;
     setIsLoading(true);
+    
     try {
       const { error } = await supabase.functions.invoke('send-verification', {
-        body: { phoneNumber }
+        body: { phoneNumber: e164Number }
       });
 
       if (error) {
@@ -38,7 +62,7 @@ const PhoneAuth = () => {
       });
       
       // Store the phone number in session storage for verification
-      sessionStorage.setItem("phoneNumber", phoneNumber);
+      sessionStorage.setItem("phoneNumber", e164Number);
       navigate("/verify");
     } catch (error) {
       console.error("Error sending verification code:", error);
@@ -70,11 +94,12 @@ const PhoneAuth = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
             type="tel"
-            placeholder="Phone number"
+            placeholder="(555) 555-5555"
             value={phoneNumber}
-            onChange={(e) => setPhoneNumber(e.target.value)}
+            onChange={handlePhoneChange}
             className="text-lg"
             disabled={isLoading}
+            maxLength={14}
           />
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Sending..." : "Continue"}
