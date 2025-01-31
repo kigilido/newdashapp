@@ -3,7 +3,7 @@ declare global {
 }
 
 declare module "talkjs" {
-  export default interface Talk {
+  export interface Talk {
     ready: Promise<void>;
     oneOnOneId(user1: Talk.User, user2: Talk.User): string;
     User: new (options: {
