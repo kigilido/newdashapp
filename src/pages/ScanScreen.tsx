@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BarcodeScanner as BarcodeScannerPlugin } from "@capacitor/barcode-scanner";
+import { BarcodeScanner } from "@capacitor/barcode-scanner";
 import { useToast } from "@/components/ui/use-toast";
 import { detectQRCodeType, handleQRCodeContent } from "@/utils/qrcode";
 
@@ -11,7 +11,7 @@ const ScanScreen = () => {
 
   const checkPermissions = async () => {
     try {
-      const { granted } = await BarcodeScannerPlugin.checkPermission({ force: true });
+      const { granted } = await BarcodeScanner.checkPermission({ force: true });
       if (!granted) {
         toast({
           title: "Permission denied",
@@ -38,7 +38,7 @@ const ScanScreen = () => {
       // Start scanning
       setScanning(true);
       
-      const result = await BarcodeScannerPlugin.startScan();
+      const result = await BarcodeScanner.startScan();
       
       if (result.hasContent) {
         const type = detectQRCodeType(result.content);
@@ -64,7 +64,7 @@ const ScanScreen = () => {
 
   const stopScan = async () => {
     try {
-      await BarcodeScannerPlugin.stopScan();
+      await BarcodeScanner.stopScan();
       setScanning(false);
       document.querySelector('body')?.classList.remove('scanner-active');
     } catch (error) {
