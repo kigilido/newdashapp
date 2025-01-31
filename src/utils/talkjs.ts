@@ -7,12 +7,19 @@ let currentSession: Talk.Session | null = null;
 export const initTalkJS = async () => {
   try {
     await Talk.ready;
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError) {
+      console.error("Authentication error:", authError);
+      return null;
+    }
     
     if (!user) {
       console.error("No authenticated user found");
       return null;
     }
+
+    console.log("Authenticated user:", user.email);
 
     if (!currentUser) {
       currentUser = new Talk.User({
@@ -31,6 +38,8 @@ export const initTalkJS = async () => {
         return null;
       }
 
+      console.log("Got TalkJS App ID successfully");
+
       currentSession = new Talk.Session({
         appId: data.secret,
         me: currentUser,
@@ -48,7 +57,10 @@ export const initTalkJS = async () => {
 
 export const createOrGetConversation = async (otherUser: Talk.User) => {
   const session = await initTalkJS();
-  if (!session || !currentUser) return null;
+  if (!session || !currentUser) {
+    console.error("Failed to get session or current user");
+    return null;
+  }
 
   const conversationId = Talk.oneOnOneId(currentUser, otherUser);
   const conversation = session.getOrCreateConversation(conversationId);

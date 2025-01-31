@@ -1,18 +1,38 @@
 import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { initTalkJS } from "@/utils/talkjs";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import Talk from "talkjs";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const ChatScreen = () => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to access the chat.",
+          variant: "destructive",
+        });
+        navigate("/");
+        return false;
+      }
+      return true;
+    };
+
     const initializeChat = async () => {
       try {
+        const isAuthenticated = await checkAuth();
+        if (!isAuthenticated) return;
+
         const session = await initTalkJS();
         
         if (!session || !chatContainerRef.current) {
@@ -54,7 +74,7 @@ const ChatScreen = () => {
     };
 
     initializeChat();
-  }, [toast]);
+  }, [toast, navigate]);
 
   return (
     <div className="space-y-4 h-[calc(100vh-12rem)]">
