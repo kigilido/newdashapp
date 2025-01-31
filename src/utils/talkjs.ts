@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import * as Talk from "talkjs";
+import type * as Talk from "talkjs";
 
 let currentUser: Talk.User | null = null;
 let currentSession: Talk.Session | null = null;
