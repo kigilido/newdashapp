@@ -22,6 +22,10 @@ serve(async (req) => {
     const authToken = Deno.env.get('TWILIO_AUTH_TOKEN')
     const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER')
 
+    if (!accountSid || !authToken || !twilioPhone) {
+      throw new Error('Missing Twilio credentials')
+    }
+
     const otp = generateOTP()
     
     // Store OTP in Supabase with expiration
@@ -46,12 +50,13 @@ serve(async (req) => {
       body: new URLSearchParams({
         To: phoneNumber,
         From: twilioPhone,
-        Body: `Your DASH verification code is: ${otp}`
+        Body: `Your verification code is: ${otp}`
       })
     })
 
     if (!twilioResponse.ok) {
-      throw new Error('Failed to send SMS')
+      const twilioError = await twilioResponse.json()
+      throw new Error(`Twilio error: ${twilioError.message}`)
     }
 
     return new Response(
