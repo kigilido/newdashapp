@@ -1,47 +1,44 @@
-import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { initTalkJS } from "@/utils/talkjs";
+import { MessageBubble } from "@/components/MessageBubble";
+import { MessageInput } from "@/components/MessageInput";
+import { useState } from "react";
 
 const ChatScreen = () => {
-  const chatboxEl = useRef<HTMLDivElement>(null);
-  const [loading, setLoading] = useState(true);
+  const [messages, setMessages] = useState<Array<{ content: string; sent: boolean; timestamp: string }>>([
+    {
+      content: "Welcome to the chat! TalkJS integration is currently disabled.",
+      sent: false,
+      timestamp: new Date().toLocaleTimeString(),
+    },
+  ]);
 
-  useEffect(() => {
-    const initChat = async () => {
-      try {
-        const session = await initTalkJS();
-        if (!session) {
-          console.error("Failed to initialize TalkJS session");
-          return;
-        }
-
-        const inbox = session.createInbox();
-        if (chatboxEl.current) {
-          inbox.mount(chatboxEl.current);
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error("Error initializing chat:", error);
-        setLoading(false);
-      }
-    };
-
-    initChat();
-  }, []);
+  const handleSendMessage = (message: string) => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        content: message,
+        sent: true,
+        timestamp: new Date().toLocaleTimeString(),
+      },
+    ]);
+  };
 
   return (
     <div className="space-y-4 h-[calc(100vh-12rem)]">
       <h1 className="text-2xl font-bold">Messages</h1>
-      {loading ? (
-        <Card className="p-4 space-y-4">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-3/4" />
-          <Skeleton className="h-12 w-1/2" />
-        </Card>
-      ) : (
-        <div ref={chatboxEl} className="h-full" />
-      )}
+      <Card className="p-4 h-[calc(100%-6rem)] flex flex-col">
+        <div className="flex-1 overflow-y-auto space-y-4 p-4">
+          {messages.map((message, index) => (
+            <MessageBubble
+              key={index}
+              content={message.content}
+              sent={message.sent}
+              timestamp={message.timestamp}
+            />
+          ))}
+        </div>
+        <MessageInput onSendMessage={handleSendMessage} />
+      </Card>
     </div>
   );
 };
