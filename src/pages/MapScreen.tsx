@@ -55,7 +55,8 @@ const MapScreen = () => {
         
         map.current = new mapboxgl.Map({
           container: mapContainer.current,
-          style: 'mapbox://styles/mapbox/light-v11',
+          // Change the style here to any of the available styles
+          style: 'mapbox://styles/mapbox/satellite-streets-v12', // Changed from light-v11 to satellite-streets
           projection: 'globe',
           zoom: 1.5,
           center: [30, 15],
