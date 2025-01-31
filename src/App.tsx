@@ -12,8 +12,7 @@ import ChatScreen from "./pages/ChatScreen";
 import ScanScreen from "./pages/ScanScreen";
 import MapScreen from "./pages/MapScreen";
 import SettingsScreen from "./pages/SettingsScreen";
-import PhoneAuth from "./components/PhoneAuth";
-import VerifyCode from "./components/VerifyCode";
+import AuthScreen from "./components/AuthScreen";
 
 const queryClient = new QueryClient();
 
@@ -40,8 +39,7 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Navigate to="/auth" replace />} />
-            <Route path="/auth" element={<PhoneAuth />} />
-            <Route path="/verify" element={<VerifyCode />} />
+            <Route path="/auth" element={<AuthScreen />} />
             <Route path="/app" element={<MainLayout />}>
               <Route path="rss" element={<RssFeed />} />
               <Route path="chat" element={<ChatScreen />} />
