@@ -12,10 +12,24 @@ serve(async (req) => {
     const { phoneNumber, code } = await req.json()
     console.log(`Verifying code for phone number: ${phoneNumber}`)
     
+    if (!phoneNumber || !code) {
+      throw new Error('Phone number and verification code are required')
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     )
+
+    // First, clean up expired codes
+    const { error: cleanupError } = await supabase
+      .from('verification_codes')
+      .delete()
+      .lt('expires_at', new Date().toISOString())
+
+    if (cleanupError) {
+      console.error('Error cleaning up expired codes:', cleanupError)
+    }
 
     // Check if code exists and is valid
     const { data: verificationData, error: verificationError } = await supabase
@@ -28,9 +42,14 @@ serve(async (req) => {
 
     console.log('Verification data:', verificationData)
     
-    if (verificationError || !verificationData) {
-      console.error('Verification error:', verificationError)
-      throw new Error(verificationError?.message || 'Invalid or expired code')
+    if (verificationError) {
+      console.error('Database error:', verificationError)
+      throw new Error('Database error while verifying code')
+    }
+
+    if (!verificationData) {
+      console.error('Invalid or expired code')
+      throw new Error('Invalid or expired code')
     }
 
     // Delete the used code
@@ -54,7 +73,11 @@ serve(async (req) => {
       throw userError
     }
 
-    console.log('User created/updated successfully')
+    if (!userData.session) {
+      throw new Error('No session returned after authentication')
+    }
+
+    console.log('User authenticated successfully')
 
     return new Response(
       JSON.stringify({ success: true, session: userData.session }),
@@ -63,7 +86,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in verify-code function:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message || 'An error occurred during verification',
+        details: error
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
         status: 400 
