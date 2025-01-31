@@ -231,7 +231,7 @@ const MapScreen = () => {
         <div className="relative w-full h-[70vh]">
           <div ref={mapContainer} className="absolute inset-0" />
           <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent to-background/10" />
-          <style jsx global>{`
+          <style>{`
             .custom-map-control {
               width: 29px;
               height: 29px;
