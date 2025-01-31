@@ -41,7 +41,9 @@ const ScanScreen = () => {
 
       // Start scanning
       setScanning(true);
-      const result = await BarcodeScanner.scan();
+      
+      // Use the correct method from BarcodeScanner
+      const result = await BarcodeScanner.startScan();
       
       if (result.hasContent) {
         const type = detectQRCodeType(result.content);

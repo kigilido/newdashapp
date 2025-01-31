@@ -1,43 +1,41 @@
-declare global {
-  const Talk: typeof import("talkjs");
-}
-
 declare module "talkjs" {
-  export interface Talk {
-    ready: Promise<void>;
-    oneOnOneId(user1: Talk.User, user2: Talk.User): string;
-    User: new (options: {
-      id: string;
-      name: string;
-      photoUrl?: string;
-      role?: string;
-    }) => Talk.User;
-    Session: new (options: {
-      appId: string;
-      me: Talk.User;
-    }) => Talk.Session;
+  export interface User {
+    id: string;
+    name: string;
+    photoUrl?: string;
+    role?: string;
   }
 
-  namespace Talk {
-    interface User {
+  export interface Session {
+    createInbox(): Inbox;
+    getOrCreateConversation(id: string): Conversation;
+  }
+
+  export interface Inbox {
+    mount(element: HTMLElement): void;
+  }
+
+  export interface Conversation {
+    setParticipant(user: User): void;
+  }
+
+  export const ready: Promise<void>;
+  export function oneOnOneId(user1: User, user2: User): string;
+  
+  export class User {
+    constructor(options: {
       id: string;
       name: string;
       photoUrl?: string;
       role?: string;
-    }
-
-    interface Session {
-      createInbox(): Inbox;
-      getOrCreateConversation(id: string): Conversation;
-    }
-
-    interface Inbox {
-      mount(element: HTMLElement): void;
-    }
-
-    interface Conversation {
-      setParticipant(user: User): void;
-    }
+    });
+  }
+  
+  export class Session {
+    constructor(options: {
+      appId: string;
+      me: User;
+    });
   }
 }
 
