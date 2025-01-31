@@ -3,13 +3,16 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Search, Navigation2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
 
 const MapScreen = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const { toast } = useToast();
 
   const handleSearch = async () => {
     if (!map.current || !searchQuery) return;
@@ -37,6 +40,52 @@ const MapScreen = () => {
       }
     } catch (error) {
       console.error('Error searching location:', error);
+    }
+  };
+
+  const handleMyLocation = () => {
+    if (!map.current) return;
+
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          
+          map.current?.flyTo({
+            center: [longitude, latitude],
+            zoom: 14,
+            duration: 2000,
+            essential: true
+          });
+
+          // Add a marker for the user's location
+          new mapboxgl.Marker({
+            color: '#7c3aed', // Purple marker to match theme
+            scale: 0.8
+          })
+            .setLngLat([longitude, latitude])
+            .addTo(map.current);
+
+          toast({
+            title: "Location Found",
+            description: "Map centered on your current location",
+          });
+        },
+        (error) => {
+          toast({
+            title: "Location Error",
+            description: "Unable to get your location. Please check your permissions.",
+            variant: "destructive",
+          });
+          console.error('Error getting location:', error);
+        }
+      );
+    } else {
+      toast({
+        title: "Not Supported",
+        description: "Geolocation is not supported by your browser",
+        variant: "destructive",
+      });
     }
   };
 
@@ -150,20 +199,32 @@ const MapScreen = () => {
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Location</h1>
       
-      {/* Search Bar */}
-      <div className="relative">
-        <Input
-          type="text"
-          placeholder="Search location..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-          className="pl-10"
-        />
-        <Search 
-          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" 
-          onClick={handleSearch}
-        />
+      <div className="flex gap-2">
+        {/* Search Bar */}
+        <div className="relative flex-1">
+          <Input
+            type="text"
+            placeholder="Search location..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            className="pl-10"
+          />
+          <Search 
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" 
+            onClick={handleSearch}
+          />
+        </div>
+        
+        {/* My Location Button */}
+        <Button
+          variant="outline"
+          className="gap-2 bg-white hover:bg-violet-50"
+          onClick={handleMyLocation}
+        >
+          <Navigation2 className="w-4 h-4" />
+          My Location
+        </Button>
       </div>
 
       <Card className="w-full overflow-hidden">
