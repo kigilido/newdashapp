@@ -4,6 +4,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { toast } from "./ui/use-toast";
 import { ArrowLeft } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const PhoneAuth = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -23,24 +24,12 @@ const PhoneAuth = () => {
 
     setIsLoading(true);
     try {
-      // Log the URL being used to help with debugging
-      console.log("Supabase URL:", import.meta.env.VITE_SUPABASE_URL);
-      
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-verification`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({ phoneNumber }),
-        }
-      );
+      const { error } = await supabase.functions.invoke('send-verification', {
+        body: { phoneNumber }
+      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to send verification code");
+      if (error) {
+        throw error;
       }
 
       toast({

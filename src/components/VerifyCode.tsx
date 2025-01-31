@@ -4,6 +4,7 @@ import { Button } from "./ui/button";
 import { toast } from "./ui/use-toast";
 import { ArrowLeft } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "./ui/input-otp";
+import { supabase } from "@/integrations/supabase/client";
 
 const VerifyCode = () => {
   const [code, setCode] = useState("");
@@ -21,26 +22,16 @@ const VerifyCode = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-code`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({ phoneNumber, code }),
-        }
-      );
+      const { data, error } = await supabase.functions.invoke('verify-code', {
+        body: { phoneNumber, code }
+      });
 
-      if (!response.ok) {
-        throw new Error("Invalid verification code");
+      if (error) {
+        throw error;
       }
 
-      const { session } = await response.json();
-      
       // Store the session
-      localStorage.setItem("session", JSON.stringify(session));
+      localStorage.setItem("session", JSON.stringify(data.session));
       
       toast({
         title: "Success",
