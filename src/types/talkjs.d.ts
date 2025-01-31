@@ -9,6 +9,8 @@ declare module "talkjs" {
   export interface Session {
     createInbox(): Inbox;
     getOrCreateConversation(id: string): Conversation;
+    createChatbox(conversation: Conversation): Chatbox;
+    me: User;
   }
 
   export interface Inbox {
@@ -17,6 +19,10 @@ declare module "talkjs" {
 
   export interface Conversation {
     setParticipant(user: User): void;
+  }
+
+  export interface Chatbox {
+    mount(element: HTMLElement): void;
   }
 
   export const ready: Promise<void>;
@@ -36,7 +42,10 @@ declare module "talkjs" {
       appId: string;
       me: User;
     });
+    me: User;
+    createChatbox(conversation: Conversation): Chatbox;
+    getOrCreateConversation(id: string): Conversation;
   }
-}
 
-export {};
+  export default Talk;
+}
