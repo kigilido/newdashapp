@@ -35,6 +35,8 @@ export const initTalkJS = async () => {
         appId: data.secret,
         me: currentUser,
       });
+
+      console.log("TalkJS session created successfully");
     }
 
     return currentSession;
@@ -54,5 +56,6 @@ export const createOrGetConversation = async (otherUser: Talk.User) => {
   conversation.setParticipant(currentUser);
   conversation.setParticipant(otherUser);
 
+  console.log("Conversation created/retrieved successfully");
   return conversation;
 };

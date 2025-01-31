@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { initTalkJS } from "@/utils/talkjs";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
+import Talk from "talkjs";
 
 const ChatScreen = () => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -23,9 +24,25 @@ const ChatScreen = () => {
           return;
         }
 
-        const inbox = session.createInbox();
-        inbox.mount(chatContainerRef.current);
+        // Create a test user to chat with
+        const otherUser = new Talk.User({
+          id: "test-user-2",
+          name: "Test User",
+          photoUrl: "https://via.placeholder.com/150",
+          role: "default",
+        });
+
+        // Create a conversation
+        const conversation = session.getOrCreateConversation(Talk.oneOnOneId(session.me, otherUser));
+        conversation.setParticipant(session.me);
+        conversation.setParticipant(otherUser);
+
+        // Create and mount the chatbox
+        const chatbox = session.createChatbox(conversation);
+        chatbox.mount(chatContainerRef.current);
         setIsLoading(false);
+
+        console.log("Chat initialized successfully");
       } catch (error) {
         console.error("Error initializing TalkJS:", error);
         toast({
