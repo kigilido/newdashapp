@@ -24,7 +24,7 @@ serve(async (req) => {
       .eq('phone_number', phoneNumber)
       .eq('code', code)
       .gt('expires_at', new Date().toISOString())
-      .single()
+      .maybeSingle()
 
     console.log('Verification data:', verificationData)
     
