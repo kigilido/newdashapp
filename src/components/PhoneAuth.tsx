@@ -23,6 +23,9 @@ const PhoneAuth = () => {
 
     setIsLoading(true);
     try {
+      // Log the URL being used to help with debugging
+      console.log("Supabase URL:", import.meta.env.VITE_SUPABASE_URL);
+      
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-verification`,
         {
@@ -36,7 +39,8 @@ const PhoneAuth = () => {
       );
 
       if (!response.ok) {
-        throw new Error("Failed to send verification code");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to send verification code");
       }
 
       toast({
@@ -48,9 +52,10 @@ const PhoneAuth = () => {
       sessionStorage.setItem("phoneNumber", phoneNumber);
       navigate("/verify");
     } catch (error) {
+      console.error("Error sending verification code:", error);
       toast({
         title: "Error",
-        description: "Failed to send verification code. Please try again.",
+        description: error.message || "Failed to send verification code. Please try again.",
         variant: "destructive",
       });
     } finally {
