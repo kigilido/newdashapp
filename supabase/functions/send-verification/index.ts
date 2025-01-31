@@ -67,7 +67,20 @@ serve(async (req) => {
     console.log('Twilio API response:', twilioData)
 
     if (!twilioResponse.ok) {
-      console.error('Twilio error:', twilioData)
+      // Check if the error is due to unverified number
+      if (twilioData.code === 21608) {
+        return new Response(
+          JSON.stringify({ 
+            error: "Trial account restriction: Please verify your phone number first",
+            verificationRequired: true,
+            verificationUrl: "https://www.twilio.com/console/phone-numbers/verified"
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400
+          }
+        )
+      }
       throw new Error(`Twilio error: ${twilioData.message}`)
     }
 

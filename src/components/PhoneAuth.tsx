@@ -48,12 +48,24 @@ const PhoneAuth = () => {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.functions.invoke('send-verification', {
+      const { error, data } = await supabase.functions.invoke('send-verification', {
         body: { phoneNumber: e164Number }
       });
 
       if (error) {
         throw error;
+      }
+
+      // Check if we need to verify the phone number first
+      if (data?.verificationRequired) {
+        toast({
+          title: "Phone number verification required",
+          description: "Since this is a trial account, you need to verify your phone number first. Please visit the Twilio Console to verify your number.",
+          variant: "destructive",
+        });
+        // Optionally open Twilio verification page in new tab
+        window.open(data.verificationUrl, '_blank');
+        return;
       }
 
       toast({
