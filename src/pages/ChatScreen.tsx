@@ -9,12 +9,20 @@ const ChatScreen = () => {
 
   useEffect(() => {
     const initChat = async () => {
-      const session = await initTalkJS();
-      if (!session) return;
+      try {
+        const session = await initTalkJS();
+        if (!session) {
+          console.error("Failed to initialize TalkJS session");
+          return;
+        }
 
-      const inbox = session.createInbox();
-      if (chatboxEl.current) {
-        inbox.mount(chatboxEl.current);
+        const inbox = session.createInbox();
+        if (chatboxEl.current) {
+          inbox.mount(chatboxEl.current);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Error initializing chat:", error);
         setLoading(false);
       }
     };

@@ -7,29 +7,44 @@ let currentUser: Talk.User | null = null;
 let currentSession: Talk.Session | null = null;
 
 export const initTalkJS = async () => {
-  await Talk.ready;
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) return null;
+  try {
+    await Talk.ready;
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      console.log("No authenticated user found");
+      return null;
+    }
 
-  if (!currentUser) {
-    currentUser = new Talk.User({
-      id: user.id,
-      name: user.phone || "Anonymous",
-      photoUrl: "https://via.placeholder.com/150",
-      role: "default",
-    });
+    if (!currentUser) {
+      currentUser = new Talk.User({
+        id: user.id,
+        name: user.email || "Anonymous",
+        photoUrl: "https://via.placeholder.com/150",
+        role: "default",
+      });
+    }
+
+    if (!currentSession) {
+      const { data: { secret } } = await supabase.functions.invoke('get-talkjs-app-id');
+      const appId = secret;
+      
+      if (!appId) {
+        console.error("TalkJS App ID not found");
+        return null;
+      }
+
+      currentSession = new Talk.Session({
+        appId,
+        me: currentUser,
+      });
+    }
+
+    return currentSession;
+  } catch (error) {
+    console.error("Error initializing TalkJS:", error);
+    return null;
   }
-
-  if (!currentSession) {
-    const appId = import.meta.env.VITE_TALKJS_APP_ID;
-    currentSession = new Talk.Session({
-      appId,
-      me: currentUser,
-    });
-  }
-
-  return currentSession;
 };
 
 export const createOrGetConversation = async (otherUser: Talk.User) => {
