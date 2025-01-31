@@ -2,12 +2,56 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { useEffect } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { ExternalLink, Copy, User, FileText } from "lucide-react";
 
 const ScanScreen = () => {
   const [scanning, setScanning] = useState(false);
+  const [lastResult, setLastResult] = useState<{
+    text: string;
+    type: "url" | "contact" | "text";
+  } | null>(null);
   const { toast } = useToast();
+
+  const detectQRCodeType = (text: string) => {
+    // Check if it's a URL
+    if (text.match(/^(http|https):\/\//i)) {
+      return "url";
+    }
+    // Check if it's a vCard/contact info (basic check)
+    if (text.startsWith("BEGIN:VCARD") || text.includes("TEL:") || text.includes("EMAIL:")) {
+      return "contact";
+    }
+    // Default to text
+    return "text";
+  };
+
+  const handleScan = (decodedText: string) => {
+    const type = detectQRCodeType(decodedText);
+    setLastResult({ text: decodedText, type });
+    
+    toast({
+      title: "QR Code Scanned!",
+      description: `Type: ${type.toUpperCase()}`,
+    });
+  };
+
+  const handleCopyToClipboard = async () => {
+    if (lastResult) {
+      await navigator.clipboard.writeText(lastResult.text);
+      toast({
+        title: "Copied!",
+        description: "Content copied to clipboard",
+      });
+    }
+  };
+
+  const handleOpenUrl = () => {
+    if (lastResult?.type === "url") {
+      window.open(lastResult.text, "_blank");
+    }
+  };
 
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
@@ -25,18 +69,13 @@ const ScanScreen = () => {
 
       scanner.render(
         (decodedText) => {
-          // Success callback
-          toast({
-            title: "QR Code Scanned!",
-            description: decodedText,
-          });
+          handleScan(decodedText);
           if (scanner) {
             scanner.clear();
             setScanning(false);
           }
         },
         (error) => {
-          // Silence errors as they're expected when scanning
           console.debug("QR Code scanning in progress:", error);
         }
       );
@@ -65,6 +104,46 @@ const ScanScreen = () => {
               >
                 Start Scanning
               </Button>
+              
+              {lastResult && (
+                <Card className="w-full mt-4">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-2 mb-2">
+                      {lastResult.type === "url" && <ExternalLink className="h-4 w-4" />}
+                      {lastResult.type === "contact" && <User className="h-4 w-4" />}
+                      {lastResult.type === "text" && <FileText className="h-4 w-4" />}
+                      <span className="font-semibold">
+                        {lastResult.type.toUpperCase()}
+                      </span>
+                    </div>
+                    
+                    <p className="text-sm text-muted-foreground break-all mb-4">
+                      {lastResult.text}
+                    </p>
+                    
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCopyToClipboard}
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy
+                      </Button>
+                      
+                      {lastResult.type === "url" && (
+                        <Button
+                          size="sm"
+                          onClick={handleOpenUrl}
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Open URL
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center">
