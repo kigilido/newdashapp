@@ -1,7 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-
-// Access the global Talk object that was loaded via the script tag
-declare const Talk: typeof import("talkjs");
+import * as Talk from "talkjs";
 
 let currentUser: Talk.User | null = null;
 let currentSession: Talk.Session | null = null;
