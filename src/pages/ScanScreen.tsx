@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Copy, User, FileText } from "lucide-react";
 import { Camera } from '@capacitor/camera';
-import { BarcodeScanner } from '@capacitor/camera';
+import { BarcodeScanner } from '@capacitor/barcode-scanner';
 
 const ScanScreen = () => {
   const [scanning, setScanning] = useState(false);
