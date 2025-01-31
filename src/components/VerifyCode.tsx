@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { toast } from "./ui/use-toast";
 import { ArrowLeft } from "lucide-react";
-import { OTPInput } from "./ui/input-otp";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "./ui/input-otp";
 
 const VerifyCode = () => {
   const [code, setCode] = useState("");
@@ -78,11 +78,17 @@ const VerifyCode = () => {
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex justify-center">
-            <OTPInput
+            <InputOTP
               value={code}
               onChange={setCode}
               maxLength={6}
-              disabled={isLoading}
+              render={({ slots }) => (
+                <InputOTPGroup>
+                  {slots.map((slot, index) => (
+                    <InputOTPSlot key={index} {...slot} />
+                  ))}
+                </InputOTPGroup>
+              )}
             />
           </div>
           <Button
