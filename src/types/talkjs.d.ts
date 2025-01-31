@@ -1,3 +1,7 @@
+declare global {
+  const Talk: typeof import("talkjs");
+}
+
 declare module "talkjs" {
   export default interface Talk {
     ready: Promise<void>;
@@ -35,7 +39,6 @@ declare module "talkjs" {
       setParticipant(user: User): void;
     }
   }
-
-  const Talk: Talk;
-  export = Talk;
 }
+
+export {};
