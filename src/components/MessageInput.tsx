@@ -25,9 +25,14 @@ export const MessageInput = ({ onSendMessage }: MessageInputProps) => {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Type a message..."
-          className="bg-background/50"
+          className="bg-background/50 focus-visible:ring-primary/20"
         />
-        <Button type="submit" size="icon">
+        <Button 
+          type="submit" 
+          size="icon"
+          className="rounded-full hover:scale-105 transition-transform"
+          disabled={!message.trim()}
+        >
           <Send className="h-4 w-4" />
         </Button>
       </div>

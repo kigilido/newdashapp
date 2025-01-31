@@ -10,12 +10,14 @@ export const MessageBubble = ({ content, sent, timestamp }: MessageBubbleProps) 
   return (
     <div
       className={cn(
-        "message-bubble",
+        "message-bubble group transition-all hover:scale-[1.02]",
         sent ? "message-bubble-sent" : "message-bubble-received"
       )}
     >
-      <p className="text-sm md:text-base">{content}</p>
-      <p className="text-xs opacity-70 mt-1">{timestamp}</p>
+      <p className="text-sm md:text-base leading-relaxed">{content}</p>
+      <p className="text-xs opacity-70 mt-2 transition-opacity group-hover:opacity-100">
+        {timestamp}
+      </p>
     </div>
   );
 };
