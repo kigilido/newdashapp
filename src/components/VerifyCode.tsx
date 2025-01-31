@@ -27,7 +27,12 @@ const VerifyCode = () => {
       });
 
       if (error) {
-        throw error;
+        console.error('Verification error:', error);
+        throw new Error(error.message || "Failed to verify code");
+      }
+
+      if (!data?.session) {
+        throw new Error("No session returned from verification");
       }
 
       // Store the session
@@ -40,9 +45,10 @@ const VerifyCode = () => {
       
       navigate("/app");
     } catch (error) {
+      console.error('Error in verification:', error);
       toast({
         title: "Error",
-        description: "Invalid verification code. Please try again.",
+        description: error instanceof Error ? error.message : "Invalid verification code. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -76,7 +82,7 @@ const VerifyCode = () => {
               render={({ slots }) => (
                 <InputOTPGroup>
                   {slots.map((slot, index) => (
-                    <InputOTPSlot key={index} {...slot} index={index} />
+                    <InputOTPSlot key={index} {...slot} />
                   ))}
                 </InputOTPGroup>
               )}
