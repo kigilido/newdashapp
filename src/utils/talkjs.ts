@@ -1,5 +1,5 @@
-import { supabase } from "@/integrations/supabase/client";
 import Talk from "talkjs";
+import { supabase } from "@/integrations/supabase/client";
 
 let currentUser: Talk.User | null = null;
 let currentSession: Talk.Session | null = null;
@@ -10,7 +10,7 @@ export const initTalkJS = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
-      console.log("No authenticated user found");
+      console.error("No authenticated user found");
       return null;
     }
 
@@ -24,16 +24,15 @@ export const initTalkJS = async () => {
     }
 
     if (!currentSession) {
-      const { data } = await supabase.functions.invoke('get-talkjs-app-id');
-      const appId = data?.secret;
+      const { data, error } = await supabase.functions.invoke('get-talkjs-app-id');
       
-      if (!appId) {
-        console.error("TalkJS App ID not found");
+      if (error || !data?.secret) {
+        console.error("Error getting TalkJS App ID:", error);
         return null;
       }
 
       currentSession = new Talk.Session({
-        appId,
+        appId: data.secret,
         me: currentUser,
       });
     }
