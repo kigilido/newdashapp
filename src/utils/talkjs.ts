@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import type * as Talk from "talkjs";
+import Talk from "talkjs";
 
 let currentUser: Talk.User | null = null;
 let currentSession: Talk.Session | null = null;
@@ -24,8 +24,8 @@ export const initTalkJS = async () => {
     }
 
     if (!currentSession) {
-      const { data: { secret } } = await supabase.functions.invoke('get-talkjs-app-id');
-      const appId = secret;
+      const { data } = await supabase.functions.invoke('get-talkjs-app-id');
+      const appId = data?.secret;
       
       if (!appId) {
         console.error("TalkJS App ID not found");
