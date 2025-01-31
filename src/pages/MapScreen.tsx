@@ -1,12 +1,44 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const MapScreen = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearch = async () => {
+    if (!map.current || !searchQuery) return;
+
+    try {
+      const { data: { token } } = await supabase.functions.invoke('get-mapbox-token');
+      
+      const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+          searchQuery
+        )}.json?access_token=${token}`
+      );
+      
+      const data = await response.json();
+      
+      if (data.features && data.features.length > 0) {
+        const [lng, lat] = data.features[0].center;
+        
+        map.current.flyTo({
+          center: [lng, lat],
+          zoom: 12,
+          duration: 2000,
+          essential: true
+        });
+      }
+    } catch (error) {
+      console.error('Error searching location:', error);
+    }
+  };
 
   useEffect(() => {
     const initializeMap = async () => {
@@ -116,6 +148,23 @@ const MapScreen = () => {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Location</h1>
+      
+      {/* Search Bar */}
+      <div className="relative">
+        <Input
+          type="text"
+          placeholder="Search location..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          className="pl-10"
+        />
+        <Search 
+          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" 
+          onClick={handleSearch}
+        />
+      </div>
+
       <Card className="w-full overflow-hidden">
         <div className="relative w-full h-[70vh]">
           <div ref={mapContainer} className="absolute inset-0" />
