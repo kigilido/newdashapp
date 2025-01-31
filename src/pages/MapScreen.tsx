@@ -113,12 +113,25 @@ const MapScreen = () => {
         });
 
         // Add navigation controls
-        map.current.addControl(
-          new mapboxgl.NavigationControl({
-            visualizePitch: true,
-          }),
-          'top-right'
-        );
+        const navControl = new mapboxgl.NavigationControl({
+          visualizePitch: true,
+        });
+        map.current.addControl(navControl, 'top-right');
+
+        // Add custom location control
+        const locationControlContainer = document.createElement('div');
+        locationControlContainer.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
+        const locationButton = document.createElement('button');
+        locationButton.className = 'custom-map-control';
+        locationButton.innerHTML = '<span class="lucide-navigation-2"></span>';
+        locationButton.addEventListener('click', handleMyLocation);
+        locationControlContainer.appendChild(locationButton);
+        map.current.addControl({
+          onAdd: () => locationControlContainer,
+          onRemove: () => {
+            locationControlContainer.parentNode?.removeChild(locationControlContainer);
+          }
+        }, 'top-right');
 
         // Disable scroll zoom for smoother experience
         map.current.scrollZoom.disable();
@@ -199,38 +212,49 @@ const MapScreen = () => {
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Location</h1>
       
-      <div className="flex gap-2">
-        {/* Search Bar */}
-        <div className="relative flex-1">
-          <Input
-            type="text"
-            placeholder="Search location..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            className="pl-10"
-          />
-          <Search 
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" 
-            onClick={handleSearch}
-          />
-        </div>
-        
-        {/* My Location Button */}
-        <Button
-          variant="outline"
-          className="gap-2 bg-white hover:bg-violet-50"
-          onClick={handleMyLocation}
-        >
-          <Navigation2 className="w-4 h-4" />
-          My Location
-        </Button>
+      <div className="relative flex-1">
+        <Input
+          type="text"
+          placeholder="Search location..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          className="pl-10"
+        />
+        <Search 
+          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" 
+          onClick={handleSearch}
+        />
       </div>
 
       <Card className="w-full overflow-hidden">
         <div className="relative w-full h-[70vh]">
           <div ref={mapContainer} className="absolute inset-0" />
           <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent to-background/10" />
+          <style jsx global>{`
+            .custom-map-control {
+              width: 29px;
+              height: 29px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+              border: none;
+              background: white;
+            }
+            .custom-map-control:hover {
+              background: #f3f4f6;
+            }
+            .lucide-navigation-2 {
+              width: 16px;
+              height: 16px;
+              display: inline-block;
+              background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 7 19-7-4-7 4 7-19z"/></svg>');
+              background-size: contain;
+              background-repeat: no-repeat;
+              background-position: center;
+            }
+          `}</style>
         </div>
       </Card>
     </div>
