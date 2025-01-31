@@ -6,8 +6,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Home from "./pages/Home";
 import SplashScreen from "./components/SplashScreen";
-import PhoneAuth from "./components/PhoneAuth";
-import VerifyCode from "./components/VerifyCode";
 import MainLayout from "./components/MainLayout";
 import RssFeed from "./pages/RssFeed";
 import ChatScreen from "./pages/ChatScreen";
@@ -39,18 +37,16 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/auth" element={<PhoneAuth />} />
-            <Route path="/verify" element={<VerifyCode />} />
+            <Route path="/" element={<Navigate to="/app/chat" replace />} />
             <Route path="/app" element={<MainLayout />}>
               <Route path="rss" element={<RssFeed />} />
               <Route path="chat" element={<ChatScreen />} />
               <Route path="scan" element={<ScanScreen />} />
               <Route path="map" element={<MapScreen />} />
               <Route path="settings" element={<SettingsScreen />} />
-              <Route index element={<Navigate to="/app/rss" replace />} />
+              <Route index element={<Navigate to="/app/chat" replace />} />
             </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<Navigate to="/app/chat" replace />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
