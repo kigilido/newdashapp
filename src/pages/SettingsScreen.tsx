@@ -2,14 +2,34 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
 const SettingsScreen = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const { data: profile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      return {
+        email: user.email,
+        ...profile
+      };
+    },
+  });
 
   const handleLogout = async () => {
     try {
@@ -31,6 +51,30 @@ const SettingsScreen = () => {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Settings</h1>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Account Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1">
+            <Label className="text-muted-foreground">Email</Label>
+            <p className="font-medium">{profile?.email}</p>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-muted-foreground">Member since</Label>
+            <p className="font-medium">
+              {profile?.created_at 
+                ? new Date(profile.created_at).toLocaleDateString()
+                : 'Loading...'}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Preferences</CardTitle>
