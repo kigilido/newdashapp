@@ -35,21 +35,17 @@ export const ConversationList = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // First, get the recipient user's ID
-      const { data: recipientUsers, error: recipientError } = await supabase
+      // First, get the recipient user's presence
+      const { data: recipientPresence, error: presenceError } = await supabase
         .from('user_presence')
         .select('user_id')
-        .eq('user_id', (await supabase
-          .from('auth.users')
-          .select('id')
-          .eq('email', recipientEmail)
-          .single()).data?.id)
+        .eq('status', 'online')
         .single();
 
-      if (recipientError || !recipientUsers) {
+      if (presenceError || !recipientPresence) {
         toast({
           title: "Error",
-          description: "Recipient user not found",
+          description: "Recipient user not found or not online",
           variant: "destructive",
         });
         return;
@@ -69,7 +65,7 @@ export const ConversationList = ({
       if (error) throw error;
 
       // Add both users as participants
-      await supabase
+      const { error: participantsError } = await supabase
         .from('conversation_participants')
         .insert([
           {
@@ -78,9 +74,11 @@ export const ConversationList = ({
           },
           {
             conversation_id: conversation.id,
-            user_id: recipientUsers.user_id
+            user_id: recipientPresence.user_id
           }
         ]);
+
+      if (participantsError) throw participantsError;
 
       setNewTitle("");
       setRecipientEmail("");
