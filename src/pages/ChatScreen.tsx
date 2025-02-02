@@ -39,7 +39,7 @@ const ChatScreen = () => {
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          event: '*',
           schema: 'public',
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`
@@ -47,8 +47,14 @@ const ChatScreen = () => {
         (payload) => {
           console.log('Received message update:', payload);
           if (payload.eventType === 'INSERT') {
-            const newMessage = payload.new as Message;
-            setMessages(prev => [...prev, newMessage]);
+            // Only add the message if it's not already in the messages array
+            setMessages(prev => {
+              const exists = prev.some(msg => msg.id === payload.new.id);
+              if (!exists) {
+                return [...prev, payload.new as Message];
+              }
+              return prev;
+            });
           }
         }
       )
@@ -114,7 +120,7 @@ const ChatScreen = () => {
     };
 
     initialize();
-  }, [toast, navigate]);
+  }, []);
 
   useEffect(() => {
     if (selectedConversation) {
@@ -148,14 +154,16 @@ const ChatScreen = () => {
         }
       };
 
+      // Set up subscription before loading messages
       const cleanup = setupSubscriptions(selectedConversation);
       loadMessages();
 
       return () => {
         cleanup();
+        setMessages([]); // Clear messages when changing conversations
       };
     }
-  }, [selectedConversation, toast, isMobile]);
+  }, [selectedConversation]);
 
   const handleSendMessage = async (content: string) => {
     if (!selectedConversation) return;
@@ -164,21 +172,29 @@ const ChatScreen = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: newMessage, error } = await supabase
+      const newMessage = {
+        content,
+        conversation_id: selectedConversation,
+        sender_id: user.id,
+        created_at: new Date().toISOString(),
+        id: crypto.randomUUID()
+      };
+
+      // Optimistically add the message to the UI
+      setMessages(prev => [...prev, newMessage]);
+
+      const { error } = await supabase
         .from('messages')
         .insert([{
           content,
           conversation_id: selectedConversation,
           sender_id: user.id
-        }])
-        .select()
-        .single();
+        }]);
 
-      if (error) throw error;
-
-      // Optimistically add the message to the UI
-      if (newMessage) {
-        setMessages(prev => [...prev, newMessage]);
+      if (error) {
+        // Remove the optimistic message if there was an error
+        setMessages(prev => prev.filter(msg => msg.id !== newMessage.id));
+        throw error;
       }
     } catch (error) {
       console.error('Error sending message:', error);
