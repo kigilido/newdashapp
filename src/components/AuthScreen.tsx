@@ -47,7 +47,18 @@ const AuthScreen = () => {
           password,
         });
 
-        if (error) throw error;
+        if (error) {
+          if (error.message === "User already registered") {
+            toast({
+              title: "Account already exists",
+              description: "Please sign in instead or use a different email.",
+              variant: "destructive",
+            });
+            setIsSignUp(false); // Switch to sign in mode
+            return;
+          }
+          throw error;
+        }
 
         toast({
           title: "Success",
