@@ -147,15 +147,13 @@ const ChatScreen = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { error } = await supabase
+      await supabase
         .from('messages')
         .insert([{
           content,
           conversation_id: selectedConversation,
           sender_id: user.id
         }]);
-
-      if (error) throw error;
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
