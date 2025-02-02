@@ -52,10 +52,6 @@
   @apply glass-panel mr-auto;
 }
 
-.input-area {
-  @apply fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background to-transparent backdrop-blur-lg border-t border-border/50;
-}
-
 .category-toggle {
   @apply transition-transform duration-300;
 }

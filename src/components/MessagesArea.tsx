@@ -29,15 +29,15 @@ export const MessagesArea = ({ messages, isLoading, onSendMessage }: MessagesAre
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-[calc(100vh-12rem)]">
       {isLoading ? (
-        <div className="flex items-center justify-center h-full">
+        <div className="flex items-center justify-center flex-1">
           <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
         </div>
       ) : (
         <>
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-4">
+          <ScrollArea className="flex-1 px-4 pb-4">
+            <div className="space-y-4 min-h-full">
               {messages.map((message) => (
                 <MessageBubble
                   key={message.id}
@@ -49,7 +49,7 @@ export const MessagesArea = ({ messages, isLoading, onSendMessage }: MessagesAre
               <div ref={messagesEndRef} />
             </div>
           </ScrollArea>
-          <MessageInput onSendMessage={onSendMessage} className="mt-4" />
+          <MessageInput onSendMessage={onSendMessage} />
         </>
       )}
     </div>

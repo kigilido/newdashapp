@@ -5,7 +5,7 @@ import { Send } from "lucide-react";
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
-  className?: string; // Added className as an optional prop
+  className?: string;
 }
 
 export const MessageInput = ({ onSendMessage, className = "" }: MessageInputProps) => {
@@ -20,7 +20,7 @@ export const MessageInput = ({ onSendMessage, className = "" }: MessageInputProp
   };
 
   return (
-    <form onSubmit={handleSubmit} className={`input-area ${className}`}>
+    <form onSubmit={handleSubmit} className="sticky bottom-16 left-0 right-0 p-4 bg-gradient-to-t from-background to-transparent backdrop-blur-lg border-t border-border/50">
       <div className="flex gap-2 max-w-4xl mx-auto">
         <Input
           value={message}
