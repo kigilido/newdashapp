@@ -34,7 +34,6 @@ const ChatScreen = () => {
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    // Check notification permission on component mount
     if ("Notification" in window) {
       setNotificationPermission(Notification.permission);
     }
@@ -57,16 +56,15 @@ const ChatScreen = () => {
     }
   };
 
-  const showNotification = (message: Message) => {
-    if (
-      notificationPermission === "granted" &&
-      document.visibilityState === "hidden" &&
-      message.sender_id !== supabase.auth.getUser()?.data?.user?.id
-    ) {
-      new Notification("New Message", {
-        body: message.content,
-        icon: "/favicon.ico",
-      });
+  const showNotification = async (message: Message) => {
+    if (notificationPermission === "granted" && document.visibilityState === "hidden") {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (message.sender_id !== user?.id) {
+        new Notification("New Message", {
+          body: message.content,
+          icon: "/favicon.ico",
+        });
+      }
     }
   };
 
@@ -82,7 +80,7 @@ const ChatScreen = () => {
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`
         },
-        (payload) => {
+        async (payload) => {
           console.log('Received message update:', payload);
           if (payload.eventType === 'INSERT') {
             const newMessage = payload.new as Message;
@@ -277,7 +275,6 @@ const ChatScreen = () => {
   };
 
   useEffect(() => {
-    // Request notification permission when the component mounts
     if (notificationPermission === "default") {
       requestNotificationPermission();
     }
