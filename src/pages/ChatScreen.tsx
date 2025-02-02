@@ -28,9 +28,47 @@ const ChatScreen = () => {
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showConversations, setShowConversations] = useState(true);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
   const { toast } = useToast();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    // Check notification permission on component mount
+    if ("Notification" in window) {
+      setNotificationPermission(Notification.permission);
+    }
+  }, []);
+
+  const requestNotificationPermission = async () => {
+    if ("Notification" in window) {
+      try {
+        const permission = await Notification.requestPermission();
+        setNotificationPermission(permission);
+        if (permission === "granted") {
+          toast({
+            title: "Notifications enabled",
+            description: "You will now receive notifications for new messages",
+          });
+        }
+      } catch (error) {
+        console.error("Error requesting notification permission:", error);
+      }
+    }
+  };
+
+  const showNotification = (message: Message) => {
+    if (
+      notificationPermission === "granted" &&
+      document.visibilityState === "hidden" &&
+      message.sender_id !== supabase.auth.getUser()?.data?.user?.id
+    ) {
+      new Notification("New Message", {
+        body: message.content,
+        icon: "/favicon.ico",
+      });
+    }
+  };
 
   const setupSubscriptions = (conversationId: string) => {
     console.log('Setting up subscription for conversation:', conversationId);
@@ -47,11 +85,13 @@ const ChatScreen = () => {
         (payload) => {
           console.log('Received message update:', payload);
           if (payload.eventType === 'INSERT') {
+            const newMessage = payload.new as Message;
             // Only add the message if it's not already in the messages array
             setMessages(prev => {
-              const exists = prev.some(msg => msg.id === payload.new.id);
+              const exists = prev.some(msg => msg.id === newMessage.id);
               if (!exists) {
-                return [...prev, payload.new as Message];
+                showNotification(newMessage);
+                return [...prev, newMessage];
               }
               return prev;
             });
@@ -235,6 +275,13 @@ const ChatScreen = () => {
   const handleBackToConversations = () => {
     setShowConversations(true);
   };
+
+  useEffect(() => {
+    // Request notification permission when the component mounts
+    if (notificationPermission === "default") {
+      requestNotificationPermission();
+    }
+  }, [notificationPermission]);
 
   if (isMobile) {
     return (
