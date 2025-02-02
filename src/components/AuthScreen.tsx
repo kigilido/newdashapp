@@ -13,6 +13,29 @@ const AuthScreen = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const navigate = useNavigate();
 
+  const handleResendVerification = async () => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Verification email sent",
+        description: "Please check your email for the verification link",
+      });
+    } catch (error) {
+      console.error("Error resending verification:", error);
+      toast({
+        title: "Error",
+        description: "Failed to resend verification email. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -36,7 +59,31 @@ const AuthScreen = () => {
           password,
         });
 
-        if (error) throw error;
+        if (error) {
+          if (error.message === "Email not confirmed") {
+            toast({
+              title: "Email not verified",
+              description: (
+                <div className="space-y-2">
+                  <p>Please verify your email before signing in.</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleResendVerification();
+                    }}
+                  >
+                    Resend verification email
+                  </Button>
+                </div>
+              ),
+              duration: 10000,
+            });
+            return;
+          }
+          throw error;
+        }
 
         toast({
           title: "Success",
