@@ -33,24 +33,31 @@ const ChatScreen = () => {
   const isMobile = useIsMobile();
 
   const setupSubscriptions = (conversationId: string) => {
+    console.log('Setting up subscription for conversation:', conversationId);
     const channel = supabase
       .channel(`messages-${conversationId}`)
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
           schema: 'public',
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`
         },
         (payload) => {
-          const newMessage = payload.new as Message;
-          setMessages(prev => [...prev, newMessage]);
+          console.log('Received message update:', payload);
+          if (payload.eventType === 'INSERT') {
+            const newMessage = payload.new as Message;
+            setMessages(prev => [...prev, newMessage]);
+          }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
 
     return () => {
+      console.log('Cleaning up subscription');
       supabase.removeChannel(channel);
     };
   };
@@ -83,7 +90,7 @@ const ChatScreen = () => {
       }
 
       setConversations(conversationsData);
-      if (conversationsData.length > 0) {
+      if (conversationsData.length > 0 && !selectedConversation) {
         setSelectedConversation(conversationsData[0].id);
       }
       setIsLoading(false);
@@ -112,6 +119,7 @@ const ChatScreen = () => {
   useEffect(() => {
     if (selectedConversation) {
       setIsLoading(true);
+      console.log('Loading messages for conversation:', selectedConversation);
 
       const loadMessages = async () => {
         try {
@@ -123,6 +131,7 @@ const ChatScreen = () => {
 
           if (messagesError) throw messagesError;
           
+          console.log('Loaded messages:', messageData);
           setMessages(messageData || []);
           setIsLoading(false);
           if (isMobile) {
@@ -155,15 +164,22 @@ const ChatScreen = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { error } = await supabase
+      const { data: newMessage, error } = await supabase
         .from('messages')
         .insert([{
           content,
           conversation_id: selectedConversation,
           sender_id: user.id
-        }]);
+        }])
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Optimistically add the message to the UI
+      if (newMessage) {
+        setMessages(prev => [...prev, newMessage]);
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
