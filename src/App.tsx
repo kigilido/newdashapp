@@ -38,7 +38,7 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Navigate to="/auth" replace />} />
+            <Route path="/" element={<Home />} />
             <Route path="/auth" element={<AuthScreen />} />
             <Route path="/app" element={<MainLayout />}>
               <Route path="rss" element={<RssFeed />} />
@@ -48,7 +48,7 @@ const App = () => {
               <Route path="settings" element={<SettingsScreen />} />
               <Route index element={<Navigate to="/app/chat" replace />} />
             </Route>
-            <Route path="*" element={<Navigate to="/auth" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
