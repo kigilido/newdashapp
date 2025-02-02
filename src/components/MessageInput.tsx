@@ -5,9 +5,10 @@ import { Send } from "lucide-react";
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
+  className?: string; // Added className as an optional prop
 }
 
-export const MessageInput = ({ onSendMessage }: MessageInputProps) => {
+export const MessageInput = ({ onSendMessage, className = "" }: MessageInputProps) => {
   const [message, setMessage] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -19,7 +20,7 @@ export const MessageInput = ({ onSendMessage }: MessageInputProps) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="input-area">
+    <form onSubmit={handleSubmit} className={`input-area ${className}`}>
       <div className="flex gap-2 max-w-4xl mx-auto">
         <Input
           value={message}
