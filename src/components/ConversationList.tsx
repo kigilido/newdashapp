@@ -26,6 +26,7 @@ export const ConversationList = ({
   onNewConversation,
 }: ConversationListProps) => {
   const [newTitle, setNewTitle] = useState("");
+  const [recipientEmail, setRecipientEmail] = useState("");
   const { toast } = useToast();
   const [isCreating, setIsCreating] = useState(false);
 
@@ -34,6 +35,27 @@ export const ConversationList = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // First, get the recipient user's ID
+      const { data: recipientUsers, error: recipientError } = await supabase
+        .from('user_presence')
+        .select('user_id')
+        .eq('user_id', (await supabase
+          .from('auth.users')
+          .select('id')
+          .eq('email', recipientEmail)
+          .single()).data?.id)
+        .single();
+
+      if (recipientError || !recipientUsers) {
+        toast({
+          title: "Error",
+          description: "Recipient user not found",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Create the conversation
       const { data: conversation, error } = await supabase
         .from('conversations')
         .insert([{
@@ -46,16 +68,29 @@ export const ConversationList = ({
 
       if (error) throw error;
 
+      // Add both users as participants
       await supabase
         .from('conversation_participants')
-        .insert([{
-          conversation_id: conversation.id,
-          user_id: user.id
-        }]);
+        .insert([
+          {
+            conversation_id: conversation.id,
+            user_id: user.id
+          },
+          {
+            conversation_id: conversation.id,
+            user_id: recipientUsers.user_id
+          }
+        ]);
 
       setNewTitle("");
+      setRecipientEmail("");
       setIsCreating(false);
       onNewConversation();
+      
+      toast({
+        title: "Success",
+        description: "Chat created successfully",
+      });
     } catch (error) {
       console.error('Error creating conversation:', error);
       toast({
@@ -70,15 +105,28 @@ export const ConversationList = ({
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         {isCreating ? (
-          <div className="flex gap-2 w-full">
+          <div className="flex flex-col gap-2 w-full">
             <Input
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               placeholder="Chat name..."
               className="flex-1"
             />
-            <Button onClick={handleCreateConversation}>Create</Button>
-            <Button variant="ghost" onClick={() => setIsCreating(false)}>Cancel</Button>
+            <Input
+              value={recipientEmail}
+              onChange={(e) => setRecipientEmail(e.target.value)}
+              placeholder="Recipient email..."
+              type="email"
+              className="flex-1"
+            />
+            <div className="flex gap-2">
+              <Button onClick={handleCreateConversation} className="flex-1">Create</Button>
+              <Button variant="ghost" onClick={() => {
+                setIsCreating(false);
+                setNewTitle("");
+                setRecipientEmail("");
+              }}>Cancel</Button>
+            </div>
           </div>
         ) : (
           <Button
