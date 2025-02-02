@@ -10,14 +10,21 @@ export const MessageBubble = ({ content, sent, timestamp }: MessageBubbleProps) 
   return (
     <div
       className={cn(
-        "message-bubble group transition-all hover:scale-[1.02]",
-        sent ? "message-bubble-sent" : "message-bubble-received"
+        "flex flex-col max-w-[80%] space-y-1",
+        sent ? "ml-auto items-end" : "mr-auto items-start"
       )}
     >
-      <p className="text-sm md:text-base leading-relaxed">{content}</p>
-      <p className="text-xs opacity-70 mt-2 transition-opacity group-hover:opacity-100">
-        {timestamp}
-      </p>
+      <div
+        className={cn(
+          "rounded-2xl px-4 py-2 break-words",
+          sent
+            ? "bg-gradient-to-r from-violet-500 to-purple-500 text-white"
+            : "bg-white/80 border border-white/20"
+        )}
+      >
+        <p className="text-sm md:text-base leading-relaxed">{content}</p>
+      </div>
+      <span className="text-xs text-muted-foreground px-2">{timestamp}</span>
     </div>
   );
 };
