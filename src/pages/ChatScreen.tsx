@@ -223,7 +223,7 @@ const ChatScreen = () => {
                 <MessageBubble
                   key={message.id}
                   content={message.content}
-                  sent={message.sender_id === supabase.auth.getUser().then(({ data }) => data.user?.id)}
+                  sender_id={message.sender_id}
                   timestamp={new Date(message.created_at).toLocaleTimeString()}
                 />
               ))}
