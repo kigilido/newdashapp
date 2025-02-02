@@ -62,6 +62,76 @@ export type Database = {
         }
         Relationships: []
       }
+      message_attachments: {
+        Row: {
+          content_type: string
+          created_at: string
+          file_name: string
+          file_path: string
+          id: string
+          message_id: string | null
+          size: number
+        }
+        Insert: {
+          content_type: string
+          created_at?: string
+          file_name: string
+          file_path: string
+          id?: string
+          message_id?: string | null
+          size: number
+        }
+        Update: {
+          content_type?: string
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          message_id?: string | null
+          size?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          message_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          message_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          message_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
@@ -96,6 +166,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_presence: {
+        Row: {
+          last_seen: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          last_seen?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          last_seen?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {

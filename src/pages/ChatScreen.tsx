@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { MessageInput } from "@/components/MessageInput";
 import { MessageBubble } from "@/components/MessageBubble";
+import { ConversationList } from "@/components/ConversationList";
 
 interface Message {
   id: string;
@@ -14,8 +15,16 @@ interface Message {
   created_at: string;
 }
 
+interface Conversation {
+  id: string;
+  title: string | null;
+  created_at: string;
+}
+
 const ChatScreen = () => {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -40,111 +49,138 @@ const ChatScreen = () => {
       return true;
     };
 
-    const loadMessages = async () => {
+    const loadConversations = async () => {
       try {
-        const isAuthenticated = await checkAuth();
-        if (!isAuthenticated) return;
-
-        // Get or create a default conversation
-        const { data: existingConversation } = await supabase
+        const { data: conversationsData, error: conversationsError } = await supabase
           .from('conversations')
-          .select('id')
-          .limit(1)
-          .single();
+          .select('*')
+          .order('created_at', { ascending: false });
 
-        let conversationId;
-        
-        if (!existingConversation) {
-          const { data: newConversation, error: createError } = await supabase
-            .from('conversations')
-            .insert([{ 
-              type: 'direct',
-              title: 'General Chat',
-              creator_id: (await supabase.auth.getUser()).data.user?.id
-            }])
-            .select()
-            .single();
+        if (conversationsError) throw conversationsError;
+        setConversations(conversationsData || []);
 
-          if (createError) throw createError;
-          conversationId = newConversation.id;
-
-          // Add current user as participant
-          await supabase
-            .from('conversation_participants')
-            .insert([{
-              conversation_id: conversationId,
-              user_id: (await supabase.auth.getUser()).data.user?.id
-            }]);
-        } else {
-          conversationId = existingConversation.id;
+        if (conversationsData && conversationsData.length > 0) {
+          setSelectedConversation(conversationsData[0].id);
         }
+      } catch (error) {
+        console.error('Error loading conversations:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load conversations",
+          variant: "destructive",
+        });
+      }
+    };
 
-        // Load existing messages
+    const loadMessages = async () => {
+      if (!selectedConversation) return;
+
+      try {
         const { data: messageData, error: messagesError } = await supabase
           .from('messages')
           .select('*')
-          .eq('conversation_id', conversationId)
+          .eq('conversation_id', selectedConversation)
           .order('created_at', { ascending: true });
 
         if (messagesError) throw messagesError;
         setMessages(messageData || []);
         setIsLoading(false);
         scrollToBottom();
-
-        // Subscribe to new messages
-        const channel = supabase
-          .channel('messages')
-          .on(
-            'postgres_changes',
-            {
-              event: 'INSERT',
-              schema: 'public',
-              table: 'messages',
-              filter: `conversation_id=eq.${conversationId}`
-            },
-            (payload) => {
-              const newMessage = payload.new as Message;
-              setMessages(prev => [...prev, newMessage]);
-              scrollToBottom();
-            }
-          )
-          .subscribe();
-
-        return () => {
-          supabase.removeChannel(channel);
-        };
       } catch (error) {
         console.error('Error loading messages:', error);
         toast({
           title: "Error",
-          description: "Failed to load messages. Please try again later.",
+          description: "Failed to load messages",
           variant: "destructive",
         });
         setIsLoading(false);
       }
     };
 
-    loadMessages();
+    const setupSubscriptions = () => {
+      if (!selectedConversation) return;
+
+      const channel = supabase
+        .channel('messages')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+            filter: `conversation_id=eq.${selectedConversation}`
+          },
+          (payload) => {
+            const newMessage = payload.new as Message;
+            setMessages(prev => [...prev, newMessage]);
+            scrollToBottom();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    };
+
+    const initialize = async () => {
+      const isAuthenticated = await checkAuth();
+      if (!isAuthenticated) return;
+      await loadConversations();
+    };
+
+    initialize();
+
+    return () => {
+      // Cleanup will be handled by setupSubscriptions
+    };
   }, [toast, navigate]);
 
+  useEffect(() => {
+    if (selectedConversation) {
+      setIsLoading(true);
+      setMessages([]);
+      const loadMessages = async () => {
+        try {
+          const { data: messageData, error: messagesError } = await supabase
+            .from('messages')
+            .select('*')
+            .eq('conversation_id', selectedConversation)
+            .order('created_at', { ascending: true });
+
+          if (messagesError) throw messagesError;
+          setMessages(messageData || []);
+          setIsLoading(false);
+          scrollToBottom();
+        } catch (error) {
+          console.error('Error loading messages:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load messages",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+        }
+      };
+
+      const cleanup = setupSubscriptions();
+      loadMessages();
+      return cleanup;
+    }
+  }, [selectedConversation, toast]);
+
   const handleSendMessage = async (content: string) => {
+    if (!selectedConversation) return;
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
-      const { data: conversation } = await supabase
-        .from('conversations')
-        .select('id')
-        .limit(1)
-        .single();
-
-      if (!conversation) return;
 
       const { error } = await supabase
         .from('messages')
         .insert([{
           content,
-          conversation_id: conversation.id,
+          conversation_id: selectedConversation,
           sender_id: user.id
         }]);
 
@@ -159,9 +195,37 @@ const ChatScreen = () => {
     }
   };
 
+  const handleNewConversation = () => {
+    setIsLoading(true);
+    supabase
+      .from('conversations')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .then(({ data, error }) => {
+        if (error) throw error;
+        setConversations(data || []);
+        if (data && data.length > 0) {
+          setSelectedConversation(data[0].id);
+        }
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error refreshing conversations:', error);
+        setIsLoading(false);
+      });
+  };
+
   return (
-    <div className="space-y-4 h-[calc(100vh-12rem)]">
-      <Card className="p-4 h-full bg-white/50 backdrop-blur-sm border-white/20 flex flex-col">
+    <div className="grid grid-cols-4 gap-4 h-[calc(100vh-12rem)]">
+      <div className="col-span-1 overflow-y-auto">
+        <ConversationList
+          conversations={conversations}
+          selectedId={selectedConversation}
+          onSelect={setSelectedConversation}
+          onNewConversation={handleNewConversation}
+        />
+      </div>
+      <Card className="col-span-3 p-4 h-full bg-white/50 backdrop-blur-sm border-white/20 flex flex-col">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
