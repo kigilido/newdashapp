@@ -7,7 +7,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { MessageInput } from "@/components/MessageInput";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ConversationList } from "@/components/ConversationList";
-import { RealtimeChannel } from "@supabase/supabase-js";
 
 interface Message {
   id: string;
@@ -35,7 +34,7 @@ const ChatScreen = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const setupSubscriptions = (conversationId: string): (() => void) => {
+  const setupSubscriptions = (conversationId: string) => {
     const channel = supabase
       .channel('messages')
       .on(
@@ -81,26 +80,35 @@ const ChatScreen = () => {
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (conversationsError) throw conversationsError;
-        setConversations(conversationsData || []);
+        if (conversationsError) {
+          throw conversationsError;
+        }
 
-        if (conversationsData && conversationsData.length > 0) {
+        if (!conversationsData) {
+          throw new Error('No conversations data received');
+        }
+
+        setConversations(conversationsData);
+        if (conversationsData.length > 0) {
           setSelectedConversation(conversationsData[0].id);
         }
+        setIsLoading(false);
       } catch (error) {
         console.error('Error loading conversations:', error);
         toast({
           title: "Error",
-          description: "Failed to load conversations",
+          description: "Failed to load conversations. Please try again.",
           variant: "destructive",
         });
+        setIsLoading(false);
       }
     };
 
     const initialize = async () => {
       const isAuthenticated = await checkAuth();
-      if (!isAuthenticated) return;
-      await loadConversations();
+      if (isAuthenticated) {
+        await loadConversations();
+      }
     };
 
     initialize();
@@ -120,6 +128,7 @@ const ChatScreen = () => {
             .order('created_at', { ascending: true });
 
           if (messagesError) throw messagesError;
+          
           setMessages(messageData || []);
           setIsLoading(false);
           scrollToBottom();
@@ -127,7 +136,7 @@ const ChatScreen = () => {
           console.error('Error loading messages:', error);
           toast({
             title: "Error",
-            description: "Failed to load messages",
+            description: "Failed to load messages. Please try again.",
             variant: "destructive",
           });
           setIsLoading(false);
@@ -147,13 +156,15 @@ const ChatScreen = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      await supabase
+      const { error } = await supabase
         .from('messages')
         .insert([{
           content,
           conversation_id: selectedConversation,
           sender_id: user.id
         }]);
+
+      if (error) throw error;
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -164,24 +175,30 @@ const ChatScreen = () => {
     }
   };
 
-  const handleNewConversation = () => {
+  const handleNewConversation = async () => {
     setIsLoading(true);
-    supabase
-      .from('conversations')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .then(({ data, error }) => {
-        if (error) throw error;
-        setConversations(data || []);
-        if (data && data.length > 0) {
-          setSelectedConversation(data[0].id);
-        }
-        setIsLoading(false);
-      })
-      .catch((error) => {
-        console.error('Error refreshing conversations:', error);
-        setIsLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('conversations')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setConversations(data || []);
+      if (data && data.length > 0) {
+        setSelectedConversation(data[0].id);
+      }
+    } catch (error) {
+      console.error('Error refreshing conversations:', error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh conversations. Please try again.",
+        variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -206,7 +223,7 @@ const ChatScreen = () => {
                 <MessageBubble
                   key={message.id}
                   content={message.content}
-                  sent={message.sender_id === supabase.auth.getUser().data?.user?.id}
+                  sent={message.sender_id === supabase.auth.getUser().then(({ data }) => data.user?.id)}
                   timestamp={new Date(message.created_at).toLocaleTimeString()}
                 />
               ))}
