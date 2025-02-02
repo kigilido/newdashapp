@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { MessageInput } from "@/components/MessageInput";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ConversationList } from "@/components/ConversationList";
+import { RealtimeChannel } from "@supabase/supabase-js";
 
 interface Message {
   id: string;
@@ -34,10 +35,34 @@ const ChatScreen = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const setupSubscriptions = (conversationId: string): (() => void) => {
+    const channel = supabase
+      .channel('messages')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`
+        },
+        (payload) => {
+          const newMessage = payload.new as Message;
+          setMessages(prev => [...prev, newMessage]);
+          scrollToBottom();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  };
+
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (!user || error) {
         toast({
           title: "Authentication Required",
           description: "Please log in to access the chat.",
@@ -72,57 +97,6 @@ const ChatScreen = () => {
       }
     };
 
-    const loadMessages = async () => {
-      if (!selectedConversation) return;
-
-      try {
-        const { data: messageData, error: messagesError } = await supabase
-          .from('messages')
-          .select('*')
-          .eq('conversation_id', selectedConversation)
-          .order('created_at', { ascending: true });
-
-        if (messagesError) throw messagesError;
-        setMessages(messageData || []);
-        setIsLoading(false);
-        scrollToBottom();
-      } catch (error) {
-        console.error('Error loading messages:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load messages",
-          variant: "destructive",
-        });
-        setIsLoading(false);
-      }
-    };
-
-    const setupSubscriptions = () => {
-      if (!selectedConversation) return;
-
-      const channel = supabase
-        .channel('messages')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'messages',
-            filter: `conversation_id=eq.${selectedConversation}`
-          },
-          (payload) => {
-            const newMessage = payload.new as Message;
-            setMessages(prev => [...prev, newMessage]);
-            scrollToBottom();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    };
-
     const initialize = async () => {
       const isAuthenticated = await checkAuth();
       if (!isAuthenticated) return;
@@ -130,16 +104,13 @@ const ChatScreen = () => {
     };
 
     initialize();
-
-    return () => {
-      // Cleanup will be handled by setupSubscriptions
-    };
   }, [toast, navigate]);
 
   useEffect(() => {
     if (selectedConversation) {
       setIsLoading(true);
       setMessages([]);
+
       const loadMessages = async () => {
         try {
           const { data: messageData, error: messagesError } = await supabase
@@ -163,7 +134,7 @@ const ChatScreen = () => {
         }
       };
 
-      const cleanup = setupSubscriptions();
+      const cleanup = setupSubscriptions(selectedConversation);
       loadMessages();
       return cleanup;
     }
@@ -237,7 +208,7 @@ const ChatScreen = () => {
                 <MessageBubble
                   key={message.id}
                   content={message.content}
-                  sent={message.sender_id === supabase.auth.getUser().data.user?.id}
+                  sent={message.sender_id === supabase.auth.getUser().data?.user?.id}
                   timestamp={new Date(message.created_at).toLocaleTimeString()}
                 />
               ))}
