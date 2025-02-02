@@ -35,17 +35,17 @@ export const ConversationList = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // First, get the recipient user's presence
-      const { data: recipientPresence, error: presenceError } = await supabase
-        .from('user_presence')
-        .select('user_id')
-        .eq('status', 'online')
+      // First, get the recipient user from profiles
+      const { data: recipientProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', recipientEmail)
         .single();
 
-      if (presenceError || !recipientPresence) {
+      if (profileError || !recipientProfile) {
         toast({
           title: "Error",
-          description: "Recipient user not found or not online",
+          description: "Recipient user not found",
           variant: "destructive",
         });
         return;
@@ -74,7 +74,7 @@ export const ConversationList = ({
           },
           {
             conversation_id: conversation.id,
-            user_id: recipientPresence.user_id
+            user_id: recipientProfile.id
           }
         ]);
 
