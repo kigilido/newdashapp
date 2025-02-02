@@ -1,11 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { MessageInput } from "@/components/MessageInput";
-import { MessageBubble } from "@/components/MessageBubble";
+import { MessagesArea } from "@/components/MessagesArea";
 import { ConversationList } from "@/components/ConversationList";
 
 interface Message {
@@ -26,13 +24,8 @@ const ChatScreen = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
 
   const setupSubscriptions = (conversationId: string) => {
     const channel = supabase
@@ -48,7 +41,6 @@ const ChatScreen = () => {
         (payload) => {
           const newMessage = payload.new as Message;
           setMessages(prev => [...prev, newMessage]);
-          scrollToBottom();
         }
       )
       .subscribe();
@@ -80,9 +72,7 @@ const ChatScreen = () => {
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (conversationsError) {
-          throw conversationsError;
-        }
+        if (conversationsError) throw conversationsError;
 
         if (!conversationsData) {
           throw new Error('No conversations data received');
@@ -131,7 +121,6 @@ const ChatScreen = () => {
           
           setMessages(messageData || []);
           setIsLoading(false);
-          scrollToBottom();
         } catch (error) {
           console.error('Error loading messages:', error);
           toast({
@@ -212,26 +201,11 @@ const ChatScreen = () => {
         />
       </div>
       <Card className="col-span-3 p-4 h-full bg-white/50 backdrop-blur-sm border-white/20 flex flex-col">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
-          </div>
-        ) : (
-          <>
-            <div className="flex-1 overflow-y-auto space-y-4 p-4">
-              {messages.map((message) => (
-                <MessageBubble
-                  key={message.id}
-                  content={message.content}
-                  sender_id={message.sender_id}
-                  timestamp={new Date(message.created_at).toLocaleTimeString()}
-                />
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-            <MessageInput onSendMessage={handleSendMessage} />
-          </>
-        )}
+        <MessagesArea
+          messages={messages}
+          isLoading={isLoading}
+          onSendMessage={handleSendMessage}
+        />
       </Card>
     </div>
   );

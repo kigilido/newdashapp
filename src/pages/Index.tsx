@@ -8,7 +8,7 @@ import { ContactsList } from "@/components/ContactsList";
 interface Message {
   id: number;
   content: string;
-  sent: boolean;
+  sender_id: string;
   timestamp: string;
   category: "personal" | "general";
 }
@@ -18,21 +18,21 @@ const Index = () => {
     {
       id: 1,
       content: "Welcome to the messaging app!",
-      sent: false,
+      sender_id: "system",
       timestamp: "12:00 PM",
       category: "general"
     },
     {
       id: 2,
       content: "Thanks! This looks amazing",
-      sent: true,
+      sender_id: "user",
       timestamp: "12:01 PM",
       category: "general"
     },
     {
       id: 3,
       content: "Hi there! This is a personal message.",
-      sent: true,
+      sender_id: "user",
       timestamp: "12:02 PM",
       category: "personal"
     }
@@ -45,7 +45,7 @@ const Index = () => {
     const newMessage: Message = {
       id: messages.length + 1,
       content,
-      sent: true,
+      sender_id: "user",
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       category: activeCategory
     };
@@ -74,7 +74,7 @@ const Index = () => {
             <MessageBubble
               key={message.id}
               content={message.content}
-              sent={message.sent}
+              sender_id={message.sender_id}
               timestamp={message.timestamp}
             />
           ))}
