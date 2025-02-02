@@ -34,6 +34,22 @@
   body {
     @apply bg-gradient-to-b from-purple-50 via-white to-purple-50 min-h-screen text-foreground antialiased;
   }
+
+  /* Mobile preview styles */
+  body:has(#root[style*="--mobile-preview-width"]) {
+    @apply flex justify-center bg-gray-900;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  body:has(#root[style*="--mobile-preview-width"]) #root {
+    @apply bg-gradient-to-b from-purple-50 via-white to-purple-50;
+    width: var(--mobile-preview-width);
+    height: calc(100vh - 4rem);
+    border-radius: 2rem;
+    overflow: hidden;
+    position: relative;
+  }
 }
 
 .glass-panel {
