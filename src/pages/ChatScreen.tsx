@@ -29,7 +29,7 @@ const ChatScreen = () => {
 
   const setupSubscriptions = (conversationId: string) => {
     const channel = supabase
-      .channel('messages')
+      .channel(`messages-${conversationId}`)
       .on(
         'postgres_changes',
         {
@@ -107,7 +107,6 @@ const ChatScreen = () => {
   useEffect(() => {
     if (selectedConversation) {
       setIsLoading(true);
-      setMessages([]);
 
       const loadMessages = async () => {
         try {
@@ -134,7 +133,10 @@ const ChatScreen = () => {
 
       const cleanup = setupSubscriptions(selectedConversation);
       loadMessages();
-      return cleanup;
+
+      return () => {
+        cleanup();
+      };
     }
   }, [selectedConversation, toast]);
 
