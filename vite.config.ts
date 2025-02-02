@@ -19,14 +19,4 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  build: {
-    rollupOptions: {
-      external: ['talkjs'],
-      output: {
-        globals: {
-          talkjs: 'Talk'
-        }
-      }
-    }
-  }
 }));
