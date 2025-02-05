@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Moon, Sun, Monitor } from "lucide-react";
 
 export const PreferencesSection = () => {
   const { toast } = useToast();
@@ -99,7 +100,7 @@ export const PreferencesSection = () => {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Preferences</CardTitle>
+          <CardTitle>Appearance</CardTitle>
         </CardHeader>
         <CardContent>
           Loading...
@@ -108,10 +109,16 @@ export const PreferencesSection = () => {
     );
   }
 
+  const themeOptions = [
+    { value: 'light', label: 'Light', icon: Sun },
+    { value: 'dark', label: 'Dark', icon: Moon },
+    { value: 'auto', label: 'System', icon: Monitor },
+  ] as const;
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Preferences</CardTitle>
+        <CardTitle>Appearance</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex items-center justify-between">
@@ -121,26 +128,22 @@ export const PreferencesSection = () => {
         
         <div className="space-y-3">
           <Label>Theme</Label>
-          <RadioGroup
-            value={themePreference?.theme || 'light'}
-            onValueChange={(value: "light" | "dark" | "auto") => {
-              updateTheme(value);
-            }}
-            className="flex flex-col space-y-2"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="light" id="light" />
-              <Label htmlFor="light">Light</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="dark" id="dark" />
-              <Label htmlFor="dark">Dark</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="auto" id="auto" />
-              <Label htmlFor="auto">Auto (System)</Label>
-            </div>
-          </RadioGroup>
+          <div className="grid grid-cols-3 gap-4">
+            {themeOptions.map(({ value, label, icon: Icon }) => (
+              <button
+                key={value}
+                className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all ${
+                  themePreference?.theme === value
+                    ? 'border-violet-500 bg-violet-50 text-violet-900'
+                    : 'border-border hover:border-violet-300 hover:bg-violet-50/50'
+                }`}
+                onClick={() => updateTheme(value)}
+              >
+                <Icon className="h-6 w-6 mb-2" />
+                <span className="text-sm font-medium">{label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </CardContent>
     </Card>
