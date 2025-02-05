@@ -171,7 +171,6 @@ export type Database = {
         Row: {
           created_at: string
           email: string | null
-          has_completed_profile_update: boolean | null
           id: string
           license_plate: string | null
           phone_number: string | null
@@ -181,7 +180,6 @@ export type Database = {
         Insert: {
           created_at?: string
           email?: string | null
-          has_completed_profile_update?: boolean | null
           id: string
           license_plate?: string | null
           phone_number?: string | null
@@ -191,7 +189,6 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string | null
-          has_completed_profile_update?: boolean | null
           id?: string
           license_plate?: string | null
           phone_number?: string | null

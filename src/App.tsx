@@ -17,7 +17,6 @@ import AccountSettingsScreen from "./pages/settings/AccountSettingsScreen";
 import GeneralSettingsScreen from "./pages/settings/GeneralSettingsScreen";
 import PrivacySettingsScreen from "./pages/settings/PrivacySettingsScreen";
 import AuthScreen from "./components/AuthScreen";
-import { ProfileUpdateCheck } from "./components/ProfileUpdateCheck";
 
 const queryClient = new QueryClient();
 
@@ -45,14 +44,7 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Navigate to="/app/chat" replace />} />
             <Route path="/auth" element={<AuthScreen />} />
-            <Route
-              path="/app"
-              element={
-                <ProfileUpdateCheck>
-                  <MainLayout />
-                </ProfileUpdateCheck>
-              }
-            >
+            <Route path="/app" element={<MainLayout />}>
               <Route path="rss" element={<RssFeed />} />
               <Route path="chat" element={<ChatScreen />} />
               <Route path="scan" element={<ScanScreen />} />
