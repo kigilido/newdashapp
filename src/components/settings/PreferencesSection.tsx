@@ -26,19 +26,20 @@ export const PreferencesSection = () => {
         .from('theme_preferences')
         .select('theme')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (error) {
-        // If no preference exists, create one with default theme
-        if (error.code === 'PGRST116') {
-          const { data: newPref } = await supabase
-            .from('theme_preferences')
-            .insert([{ id: user.id, theme: 'light' }])
-            .select()
-            .single();
-          return newPref;
-        }
-        throw error;
+      if (error) throw error;
+
+      // If no preference exists, create one with default theme
+      if (!data) {
+        const { data: newPref, error: insertError } = await supabase
+          .from('theme_preferences')
+          .insert([{ id: user.id, theme: 'light' }])
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        return newPref;
       }
 
       return data;
@@ -71,10 +72,13 @@ export const PreferencesSection = () => {
   useEffect(() => {
     if (!themePreference) return;
 
+    const root = document.documentElement;
     if (themePreference.theme === "auto") {
-      document.documentElement.classList.toggle("dark", prefersDark.matches);
+      root.classList.remove('light', 'dark');
+      root.classList.add(prefersDark.matches ? 'dark' : 'light');
     } else {
-      document.documentElement.classList.toggle("dark", themePreference.theme === "dark");
+      root.classList.remove('light', 'dark');
+      root.classList.add(themePreference.theme);
     }
   }, [themePreference, prefersDark.matches]);
 
@@ -82,13 +86,14 @@ export const PreferencesSection = () => {
   useEffect(() => {
     const handleChange = (e: MediaQueryListEvent) => {
       if (themePreference?.theme === "auto") {
-        document.documentElement.classList.toggle("dark", e.matches);
+        document.documentElement.classList.remove('light', 'dark');
+        document.documentElement.classList.add(e.matches ? 'dark' : 'light');
       }
     };
 
     prefersDark.addEventListener("change", handleChange);
     return () => prefersDark.removeEventListener("change", handleChange);
-  }, [themePreference]);
+  }, [themePreference?.theme]);
 
   if (isLoading) {
     return (
