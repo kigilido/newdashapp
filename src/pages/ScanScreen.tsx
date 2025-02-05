@@ -36,7 +36,7 @@ const ScanScreen = () => {
         .from('profiles')
         .select('id, email')
         .eq('license_plate', licensePlate)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return profile;
