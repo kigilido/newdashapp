@@ -16,6 +16,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   const map = useRef<mapboxgl.Map | null>(null);
   const { toast } = useToast();
   const [isSatelliteView, setIsSatelliteView] = useState(false);
+  const mapInitializedRef = useRef(false);
 
   const toggleMapStyle = () => {
     if (!map.current) return;
@@ -29,6 +30,9 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   };
 
   useEffect(() => {
+    if (mapInitializedRef.current || !mapContainer.current) return;
+    mapInitializedRef.current = true;
+
     const initializeMap = async () => {
       try {
         console.log('Fetching Mapbox token...');
@@ -57,12 +61,6 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         }
 
         console.log('Token received successfully');
-        
-        if (!mapContainer.current) {
-          console.error('Map container not found');
-          return;
-        }
-        
         mapboxgl.accessToken = data.token;
         console.log('Initializing map...');
 
@@ -72,8 +70,10 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
             (position) => {
               const { latitude, longitude } = position.coords;
               
+              if (!mapContainer.current) return;
+              
               map.current = new mapboxgl.Map({
-                container: mapContainer.current!,
+                container: mapContainer.current,
                 style: 'mapbox://styles/mapbox/streets-v12',
                 center: [longitude, latitude],
                 zoom: 14,
@@ -88,11 +88,10 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
               map.current.addControl(navControl, 'top-right');
 
               console.log('Map initialized successfully at user location');
-              map.current.on('load', () => {
+              map.current.once('load', () => {
                 console.log('Map loaded successfully');
                 onMapInitialized(map.current!);
               });
-
             },
             (error) => {
               console.error('Error getting location:', error);
@@ -133,7 +132,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
       map.current.addControl(navControl, 'top-right');
 
       console.log('Map initialized with default location');
-      map.current.on('load', () => {
+      map.current.once('load', () => {
         console.log('Map loaded successfully');
         onMapInitialized(map.current!);
       });
@@ -141,11 +140,11 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
 
     initializeMap();
 
-    // Cleanup
     return () => {
       if (map.current) {
         map.current.remove();
       }
+      mapInitializedRef.current = false;
     };
   }, [onMapInitialized]);
 
