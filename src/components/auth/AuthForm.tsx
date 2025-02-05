@@ -2,7 +2,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
-import { ResendVerificationButton } from "./ResendVerificationButton";
 import { SignUpFields } from "./SignUpFields";
 import { useAuth } from "@/hooks/useAuth";
 
