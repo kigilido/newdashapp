@@ -3,8 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { updateProfile } from "@/utils/auth";
-import { ResendVerificationButton } from "@/components/auth/ResendVerificationButton";
+import { updateProfile, resendVerificationEmail } from "@/utils/auth";
 
 export const useAuth = () => {
   const [emailOrUsername, setEmailOrUsername] = useState("");
@@ -98,7 +97,15 @@ export const useAuth = () => {
             description: (
               <div className="space-y-2">
                 <p>Please verify your email before signing in.</p>
-                <ResendVerificationButton email={emailOrUsername} />
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    resendVerificationEmail(emailOrUsername);
+                  }}
+                  className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+                >
+                  Resend verification email
+                </button>
               </div>
             ),
             duration: 10000,
@@ -132,4 +139,3 @@ export const useAuth = () => {
     handleSignIn,
   };
 };
-
