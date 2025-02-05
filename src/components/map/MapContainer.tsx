@@ -15,7 +15,9 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   useEffect(() => {
     const initializeMap = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke('get-mapbox-token');
+        const { data, error } = await supabase.functions.invoke('get-mapbox-token', {
+          method: 'GET'
+        });
         
         if (error) throw error;
         
