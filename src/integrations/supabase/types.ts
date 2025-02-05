@@ -172,6 +172,7 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          license_plate: string | null
           phone_number: string | null
           updated_at: string
         }
@@ -179,6 +180,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id: string
+          license_plate?: string | null
           phone_number?: string | null
           updated_at?: string
         }
@@ -186,6 +188,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          license_plate?: string | null
           phone_number?: string | null
           updated_at?: string
         }
