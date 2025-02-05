@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,24 @@ export const AuthForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const navigate = useNavigate();
+
+  // Check for existing session on mount
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate("/app");
+      }
+    });
+
+    // Setup auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        navigate("/app");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,10 +62,15 @@ export const AuthForm = () => {
 
     try {
       if (isSignUp) {
-        // For signup, we always use email
         const { data: { user }, error } = await supabase.auth.signUp({
           email: emailOrUsername,
           password,
+          options: {
+            data: {
+              username,
+              license_plate: licensePlate
+            }
+          }
         });
 
         if (error) {
@@ -118,8 +141,6 @@ export const AuthForm = () => {
           title: "Success",
           description: "Successfully logged in",
         });
-        
-        navigate("/app");
       }
     } catch (error) {
       console.error("Authentication error:", error);

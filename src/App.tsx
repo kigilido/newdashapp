@@ -18,11 +18,29 @@ import GeneralSettingsScreen from "./pages/settings/GeneralSettingsScreen";
 import PrivacySettingsScreen from "./pages/settings/PrivacySettingsScreen";
 import AdminSettingsScreen from "./pages/settings/AdminSettingsScreen";
 import AuthScreen from "./components/AuthScreen";
+import { supabase } from "./integrations/supabase/client";
 
 const queryClient = new QueryClient();
 
 const App = () => {
   const [showSplash, setShowSplash] = useState(true);
+  const [session, setSession] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setIsLoading(false);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -36,6 +54,10 @@ const App = () => {
     return <SplashScreen />;
   }
 
+  if (isLoading) {
+    return <SplashScreen />;
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -43,9 +65,18 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Navigate to="/app/chat" replace />} />
-            <Route path="/auth" element={<AuthScreen />} />
-            <Route path="/app" element={<MainLayout />}>
+            <Route 
+              path="/" 
+              element={session ? <Navigate to="/app/chat" replace /> : <Navigate to="/auth" replace />} 
+            />
+            <Route 
+              path="/auth" 
+              element={session ? <Navigate to="/app/chat" replace /> : <AuthScreen />} 
+            />
+            <Route 
+              path="/app" 
+              element={session ? <MainLayout /> : <Navigate to="/auth" replace />}
+            >
               <Route path="rss" element={<RssFeed />} />
               <Route path="chat" element={<ChatScreen />} />
               <Route path="scan" element={<ScanScreen />} />
