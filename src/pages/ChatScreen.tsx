@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -103,7 +104,7 @@ const ChatScreen = () => {
   }
 
   return (
-    <div className="grid grid-cols-4 gap-4 h-[calc(100vh-12rem)]">
+    <div className="grid grid-cols-3 gap-4 h-[calc(100vh-12rem)]">
       <div className="col-span-1 overflow-y-auto">
         <ConversationList
           conversations={conversations}
@@ -112,7 +113,7 @@ const ChatScreen = () => {
           onNewConversation={handleNewConversation}
         />
       </div>
-      <Card className="col-span-3 p-4 bg-white/50 backdrop-blur-sm border-white/20 flex flex-col">
+      <Card className="col-span-2 p-4 bg-white/50 backdrop-blur-sm border-white/20 flex flex-col">
         <MessagesArea
           messages={messages}
           isLoading={isLoading}
