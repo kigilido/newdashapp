@@ -16,7 +16,7 @@ const ScanScreen = () => {
         quality: 90,
         allowEditing: false,
         resultType: CameraResultType.DataUrl,
-        direction: CameraDirection.BACK // Fixed: Using correct enum value
+        direction: CameraDirection.Rear // Fixed: Using correct enum value 'Rear' instead of 'BACK'
       });
 
       setPhoto(image.dataUrl || null);
