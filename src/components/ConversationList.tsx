@@ -56,7 +56,7 @@ export const ConversationList = ({
       const { data: conversation, error } = await supabase
         .from('conversations')
         .insert([{
-          title: `Chat with ${recipientProfile.username}`,
+          title: `${recipientProfile.username}`,
           type: 'direct',
           creator_id: user.id
         }])
@@ -114,6 +114,14 @@ export const ConversationList = ({
     }
   };
 
+  const getUsername = (title: string | null) => {
+    if (!title) return "New Chat";
+    if (title.startsWith("Chat with ")) {
+      return title.replace("Chat with ", "");
+    }
+    return title;
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
@@ -156,11 +164,8 @@ export const ConversationList = ({
             onClick={() => onSelect(conv.id)}
           >
             <h3 className="font-medium">
-              {conv.title || "New Chat"}
+              {getUsername(conv.title)}
             </h3>
-            <p className="text-sm text-muted-foreground">
-              {new Date(conv.created_at).toLocaleDateString()}
-            </p>
           </Card>
         ))}
       </div>
