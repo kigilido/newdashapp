@@ -52,11 +52,11 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         
         map.current = new mapboxgl.Map({
           container: mapContainer.current,
-          style: 'mapbox://styles/mapbox/satellite-streets-v12',
-          projection: 'globe',
-          zoom: 1.5,
+          style: 'mapbox://styles/mapbox/streets-v12',
           center: [30, 15],
-          pitch: 45,
+          zoom: 2,
+          pitch: 0,
+          bearing: 0
         });
 
         // Add navigation controls
@@ -64,69 +64,6 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
           visualizePitch: true,
         });
         map.current.addControl(navControl, 'top-right');
-
-        // Disable scroll zoom for smoother experience
-        map.current.scrollZoom.disable();
-
-        // Add atmosphere and fog effects
-        map.current.on('style.load', () => {
-          map.current?.setFog({
-            color: 'rgb(255, 255, 255)',
-            'high-color': 'rgb(200, 200, 225)',
-            'horizon-blend': 0.2,
-          });
-          console.log('Map style loaded successfully');
-        });
-
-        // Rotation animation settings
-        const secondsPerRevolution = 240;
-        const maxSpinZoom = 5;
-        const slowSpinZoom = 3;
-        let userInteracting = false;
-        let spinEnabled = true;
-
-        // Spin globe function
-        function spinGlobe() {
-          if (!map.current) return;
-          
-          const zoom = map.current.getZoom();
-          if (spinEnabled && !userInteracting && zoom < maxSpinZoom) {
-            let distancePerSecond = 360 / secondsPerRevolution;
-            if (zoom > slowSpinZoom) {
-              const zoomDif = (maxSpinZoom - zoom) / (maxSpinZoom - slowSpinZoom);
-              distancePerSecond *= zoomDif;
-            }
-            const center = map.current.getCenter();
-            center.lng -= distancePerSecond;
-            map.current.easeTo({ center, duration: 1000, easing: (n) => n });
-          }
-        }
-
-        // Event listeners for interaction
-        map.current.on('mousedown', () => {
-          userInteracting = true;
-        });
-        
-        map.current.on('dragstart', () => {
-          userInteracting = true;
-        });
-        
-        map.current.on('mouseup', () => {
-          userInteracting = false;
-          spinGlobe();
-        });
-        
-        map.current.on('touchend', () => {
-          userInteracting = false;
-          spinGlobe();
-        });
-
-        map.current.on('moveend', () => {
-          spinGlobe();
-        });
-
-        // Start the globe spinning
-        spinGlobe();
 
         console.log('Map initialized successfully');
         // Notify parent component that map is initialized
