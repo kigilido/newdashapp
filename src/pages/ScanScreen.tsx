@@ -1,5 +1,5 @@
 
-import { Camera, CameraResultType, CameraDirection } from '@capacitor/camera';
+import { Camera, CameraResultType, CameraDirection, CameraSource } from '@capacitor/camera';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
@@ -10,21 +10,41 @@ const ScanScreen = () => {
   const [photo, setPhoto] = useState<string | null>(null);
   const { toast } = useToast();
 
+  const checkPermissions = async () => {
+    try {
+      const permission = await Camera.checkPermissions();
+      if (permission.camera !== 'granted') {
+        await Camera.requestPermissions();
+      }
+    } catch (error) {
+      console.error('Permission error:', error);
+      toast({
+        title: "Permission Error",
+        description: "Unable to access camera. Please check your permissions.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const takePicture = async () => {
     try {
+      await checkPermissions();
+
       const image = await Camera.getPhoto({
         quality: 90,
         allowEditing: false,
         resultType: CameraResultType.DataUrl,
-        direction: CameraDirection.BACK // Fixed: Using correct enum value
+        source: CameraSource.CAMERA,
+        direction: CameraDirection.BACK
       });
 
-      setPhoto(image.dataUrl || null);
-      
-      toast({
-        title: "Photo captured",
-        description: "Your photo has been captured successfully.",
-      });
+      if (image.dataUrl) {
+        setPhoto(image.dataUrl);
+        toast({
+          title: "Photo captured",
+          description: "Your photo has been captured successfully.",
+        });
+      }
     } catch (error) {
       console.error('Camera error:', error);
       toast({
