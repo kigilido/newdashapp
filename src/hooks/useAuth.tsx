@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { updateProfile } from "@/utils/auth";
+import { ResendVerificationButton } from "@/components/auth/ResendVerificationButton";
 
 export const useAuth = () => {
   const [emailOrUsername, setEmailOrUsername] = useState("");
@@ -131,3 +132,4 @@ export const useAuth = () => {
     handleSignIn,
   };
 };
+
