@@ -25,7 +25,8 @@ const ChatScreen = () => {
     loadConversations,
     loadMessages,
     handleSendMessage,
-    handleNewConversation
+    handleNewConversation,
+    selectedConversationTitle
   } = useConversationState();
 
   useEffect(() => {

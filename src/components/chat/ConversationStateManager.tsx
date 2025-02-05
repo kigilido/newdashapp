@@ -21,6 +21,7 @@ export const useConversationState = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const [selectedConversationTitle, setSelectedConversationTitle] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -75,7 +76,25 @@ export const useConversationState = () => {
 
       if (messagesError) throw messagesError;
       
-      console.log('Loaded messages:', messageData);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get the conversation participants
+      const { data: participants } = await supabase
+        .from('conversation_participants')
+        .select('user_id, profiles(username)')
+        .eq('conversation_id', conversationId);
+
+      if (participants) {
+        // Find the other participant (not the current user)
+        const otherParticipant = participants.find(p => p.user_id !== user.id);
+        if (otherParticipant && otherParticipant.profiles) {
+          setSelectedConversationTitle(otherParticipant.profiles.username || "Chat");
+        } else {
+          setSelectedConversationTitle("Chat");
+        }
+      }
+
       setMessages(messageData || []);
       setIsLoading(false);
     } catch (error) {
@@ -139,6 +158,7 @@ export const useConversationState = () => {
     conversations,
     selectedConversation,
     setSelectedConversation,
+    selectedConversationTitle,
     isLoading,
     setIsLoading,
     checkAuth,
