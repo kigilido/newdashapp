@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
@@ -9,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 const AuthScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [licensePlate, setLicensePlate] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const navigate = useNavigate();
@@ -36,13 +39,30 @@ const AuthScreen = () => {
     }
   };
 
+  const updateProfile = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          username,
+          license_plate: licensePlate 
+        })
+        .eq('id', userId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data: { user }, error } = await supabase.auth.signUp({
           email,
           password,
         });
@@ -54,10 +74,14 @@ const AuthScreen = () => {
               description: "Please sign in instead or use a different email.",
               variant: "destructive",
             });
-            setIsSignUp(false); // Switch to sign in mode
+            setIsSignUp(false);
             return;
           }
           throw error;
+        }
+
+        if (user) {
+          await updateProfile(user.id);
         }
 
         toast({
@@ -147,6 +171,24 @@ const AuthScreen = () => {
             onChange={(e) => setPassword(e.target.value)}
             disabled={isLoading}
           />
+          {isSignUp && (
+            <>
+              <Input
+                type="text"
+                placeholder="Username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                disabled={isLoading}
+              />
+              <Input
+                type="text"
+                placeholder="License Plate"
+                value={licensePlate}
+                onChange={(e) => setLicensePlate(e.target.value.toUpperCase())}
+                disabled={isLoading}
+              />
+            </>
+          )}
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Processing..." : isSignUp ? "Sign Up" : "Sign In"}
           </Button>

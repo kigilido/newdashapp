@@ -33,6 +33,8 @@ const AccountSettingsScreen = () => {
       <AccountInfoSection 
         email={profile?.email}
         phoneNumber={profile?.phone_number}
+        username={profile?.username}
+        licensePlate={profile?.license_plate}
         createdAt={profile?.created_at}
       />
 
