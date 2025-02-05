@@ -1,8 +1,7 @@
-
 import { Camera, CameraResultType, CameraDirection, CameraSource } from '@capacitor/camera';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Camera as CameraIcon } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,20 +10,68 @@ import { useNavigate } from "react-router-dom";
 const ScanScreen = () => {
   const [photo, setPhoto] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    checkPermissions();
+  }, []);
 
   const checkPermissions = async () => {
     try {
       const permission = await Camera.checkPermissions();
+      setHasPermission(permission.camera === 'granted');
+      
       if (permission.camera !== 'granted') {
-        await Camera.requestPermissions();
+        // For iOS Safari, we need to show a button that triggers the permission request
+        if (
+          navigator.mediaDevices &&
+          navigator.mediaDevices.getUserMedia
+        ) {
+          try {
+            // This will trigger the permission prompt
+            await navigator.mediaDevices.getUserMedia({ video: true });
+            setHasPermission(true);
+          } catch (err) {
+            console.error('Permission error:', err);
+            setHasPermission(false);
+          }
+        }
+        
+        // Also try Capacitor's permission request
+        try {
+          const newPermission = await Camera.requestPermissions();
+          setHasPermission(newPermission.camera === 'granted');
+        } catch (err) {
+          console.error('Capacitor permission error:', err);
+          setHasPermission(false);
+        }
       }
     } catch (error) {
-      console.error('Permission error:', error);
+      console.error('Permission check error:', error);
+      setHasPermission(false);
       toast({
         title: "Permission Error",
-        description: "Unable to access camera. Please check your permissions.",
+        description: "Unable to access camera. Please check your permissions in your browser settings.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const requestPermission = async () => {
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        await navigator.mediaDevices.getUserMedia({ video: true });
+        setHasPermission(true);
+      }
+      const permission = await Camera.requestPermissions();
+      setHasPermission(permission.camera === 'granted');
+    } catch (error) {
+      console.error('Permission request error:', error);
+      toast({
+        title: "Permission Error",
+        description: "Please enable camera access in your browser settings to use this feature.",
         variant: "destructive",
       });
     }
@@ -118,9 +165,12 @@ const ScanScreen = () => {
   };
 
   const takePicture = async () => {
-    try {
-      await checkPermissions();
+    if (!hasPermission) {
+      await requestPermission();
+      return;
+    }
 
+    try {
       const image = await Camera.getPhoto({
         quality: 90,
         allowEditing: false,
@@ -173,8 +223,13 @@ const ScanScreen = () => {
               disabled={isProcessing}
             >
               <CameraIcon className="w-5 h-5" />
-              {isProcessing ? "Processing..." : "Take Photo"}
+              {hasPermission === false ? "Enable Camera" : isProcessing ? "Processing..." : "Take Photo"}
             </Button>
+            {hasPermission === false && (
+              <p className="text-sm text-red-500">
+                Camera access is required. Please enable it in your browser settings.
+              </p>
+            )}
             <p className="text-sm text-gray-500">
               Scan a vehicle's license plate to start a chat
             </p>
