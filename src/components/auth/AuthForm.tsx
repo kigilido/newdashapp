@@ -19,6 +19,27 @@ export const AuthForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate required fields for signup
+    if (isSignUp && (!emailOrUsername || !password || !username || !licensePlate)) {
+      toast({
+        title: "Missing required fields",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate required fields for login
+    if (!isSignUp && (!emailOrUsername || !password)) {
+      toast({
+        title: "Missing required fields",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -120,6 +141,7 @@ export const AuthForm = () => {
         value={emailOrUsername}
         onChange={(e) => setEmailOrUsername(e.target.value)}
         disabled={isLoading}
+        required
       />
       <Input
         type="password"
@@ -127,6 +149,7 @@ export const AuthForm = () => {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         disabled={isLoading}
+        required
       />
       {isSignUp && (
         <>
@@ -136,6 +159,7 @@ export const AuthForm = () => {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             disabled={isLoading}
+            required
           />
           <Input
             type="text"
@@ -143,6 +167,7 @@ export const AuthForm = () => {
             value={licensePlate}
             onChange={(e) => setLicensePlate(e.target.value.toUpperCase())}
             disabled={isLoading}
+            required
           />
         </>
       )}
