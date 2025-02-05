@@ -123,6 +123,23 @@ export const useConversationState = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // First verify that the user is a participant in this conversation
+      const { data: participantCheck, error: participantError } = await supabase
+        .from('conversation_participants')
+        .select('user_id')
+        .eq('conversation_id', selectedConversation)
+        .eq('user_id', user.id)
+        .single();
+
+      if (participantError || !participantCheck) {
+        toast({
+          title: "Error",
+          description: "You are not authorized to send messages in this conversation.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const newMessage = {
         content,
         conversation_id: selectedConversation,
@@ -137,7 +154,7 @@ export const useConversationState = () => {
         .from('messages')
         .insert([{
           content,
-          conversation_id: selectedConversation,
+          conversation_id: selectedConversion,
           sender_id: user.id
         }]);
 
