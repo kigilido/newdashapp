@@ -38,16 +38,18 @@ export const ContactsList = ({
 
   const loadContacts = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { data: contactsData, error: contactsError } = await supabase
         .from('contacts')
         .select(`
           id,
           name,
           contact_user_id,
-          profiles:contact_user_id (
-            username
-          )
-        `);
+          profiles!contacts_contact_user_id_fkey (username)
+        `)
+        .eq('user_id', user.id);
 
       if (contactsError) throw contactsError;
 
@@ -75,6 +77,9 @@ export const ContactsList = ({
   const handleAddContact = async () => {
     if (username.trim()) {
       try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
         // First find the user by username
         const { data: profiles, error: profileError } = await supabase
           .from('profiles')
@@ -97,7 +102,8 @@ export const ContactsList = ({
           .insert([
             {
               contact_user_id: profiles.id,
-              name: profiles.username
+              name: profiles.username,
+              user_id: user.id
             }
           ]);
 
