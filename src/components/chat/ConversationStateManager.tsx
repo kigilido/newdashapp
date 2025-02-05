@@ -79,17 +79,25 @@ export const useConversationState = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get the conversation participants
+      // First get the participants
       const { data: participants } = await supabase
         .from('conversation_participants')
-        .select('user_id, profiles(username)')
+        .select('user_id')
         .eq('conversation_id', conversationId);
 
       if (participants) {
         // Find the other participant (not the current user)
         const otherParticipant = participants.find(p => p.user_id !== user.id);
-        if (otherParticipant && otherParticipant.profiles) {
-          setSelectedConversationTitle(otherParticipant.profiles.username || "Chat");
+        
+        if (otherParticipant) {
+          // Get the profile of the other participant
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', otherParticipant.user_id)
+            .single();
+
+          setSelectedConversationTitle(profile?.username || "Chat");
         } else {
           setSelectedConversationTitle("Chat");
         }
