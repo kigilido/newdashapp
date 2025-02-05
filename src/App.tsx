@@ -16,6 +16,7 @@ import SettingsScreen from "./pages/SettingsScreen";
 import AccountSettingsScreen from "./pages/settings/AccountSettingsScreen";
 import GeneralSettingsScreen from "./pages/settings/GeneralSettingsScreen";
 import PrivacySettingsScreen from "./pages/settings/PrivacySettingsScreen";
+import AdminSettingsScreen from "./pages/settings/AdminSettingsScreen";
 import AuthScreen from "./components/AuthScreen";
 
 const queryClient = new QueryClient();
@@ -53,6 +54,7 @@ const App = () => {
               <Route path="settings/account" element={<AccountSettingsScreen />} />
               <Route path="settings/general" element={<GeneralSettingsScreen />} />
               <Route path="settings/privacy" element={<PrivacySettingsScreen />} />
+              <Route path="settings/admin" element={<AdminSettingsScreen />} />
               <Route index element={<Navigate to="/app/chat" replace />} />
             </Route>
             <Route path="*" element={<Navigate to="/app/chat" replace />} />
