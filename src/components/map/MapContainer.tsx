@@ -16,8 +16,9 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   const map = useRef<mapboxgl.Map | null>(null);
   const { toast } = useToast();
   const [isSatelliteView, setIsSatelliteView] = useState(false);
-  const mapInitializedRef = useRef(false);
   const [isMapReady, setIsMapReady] = useState(false);
+  const isInitialized = useRef(false);
+  const mapboxToken = useRef<string | null>(null);
 
   const toggleMapStyle = () => {
     if (!map.current || !isMapReady) return;
@@ -31,132 +32,93 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   };
 
   useEffect(() => {
-    if (mapInitializedRef.current || !mapContainer.current) return;
-    mapInitializedRef.current = true;
-
     const initializeMap = async () => {
-      try {
-        console.log('Fetching Mapbox token...');
-        const { data, error } = await supabase.functions.invoke('get-mapbox-token', {
-          method: 'POST',
-        });
-        
-        if (error) {
-          console.error('Error fetching Mapbox token:', error);
+      // Only fetch token once
+      if (!mapboxToken.current) {
+        try {
+          const { data, error } = await supabase.functions.invoke('get-mapbox-token', {
+            method: 'POST',
+          });
+          
+          if (error || !data?.token) {
+            console.error('Error fetching Mapbox token:', error);
+            toast({
+              title: "Error Loading Map",
+              description: "Failed to initialize the map. Please try again later.",
+              variant: "destructive",
+            });
+            return;
+          }
+          
+          mapboxToken.current = data.token;
+          mapboxgl.accessToken = data.token;
+          
+        } catch (error) {
+          console.error('Error in map initialization:', error);
           toast({
-            title: "Error Loading Map",
-            description: "Failed to initialize the map. Please try again later.",
+            title: "Map Error",
+            description: "An error occurred while setting up the map.",
             variant: "destructive",
           });
           return;
         }
-        
-        if (!data?.token) {
-          console.error('No token received from server');
-          toast({
-            title: "Error Loading Map",
-            description: "Map configuration is incomplete. Please try again later.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        console.log('Token received successfully');
-        mapboxgl.accessToken = data.token;
-        console.log('Initializing map...');
-
-        // Get user's location
-        if ('geolocation' in navigator) {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              const { latitude, longitude } = position.coords;
-              
-              if (!mapContainer.current) return;
-              
-              const mapInstance = new mapboxgl.Map({
-                container: mapContainer.current,
-                style: 'mapbox://styles/mapbox/streets-v12',
-                center: [longitude, latitude],
-                zoom: 14,
-                pitch: 0,
-                bearing: 0
-              });
-
-              map.current = mapInstance;
-
-              // Add navigation controls
-              const navControl = new mapboxgl.NavigationControl({
-                visualizePitch: true,
-              });
-              mapInstance.addControl(navControl, 'top-right');
-
-              console.log('Map initialized successfully at user location');
-
-              // Wait for both style and map to be loaded
-              mapInstance.once('load', () => {
-                console.log('Map loaded successfully');
-                setIsMapReady(true);
-                onMapInitialized(mapInstance);
-              });
-            },
-            (error) => {
-              console.error('Error getting location:', error);
-              initializeDefaultMap(data.token);
-            }
-          );
-        } else {
-          console.log('Geolocation not supported, using default location');
-          initializeDefaultMap(data.token);
-        }
-
-      } catch (error) {
-        console.error('Error in map initialization:', error);
-        toast({
-          title: "Map Error",
-          description: "An error occurred while setting up the map.",
-          variant: "destructive",
-        });
       }
-    };
 
-    const initializeDefaultMap = (token: string) => {
-      if (!mapContainer.current) return;
+      if (!mapContainer.current || isInitialized.current || !mapboxToken.current) return;
+      
+      const createMap = (longitude: number, latitude: number, zoom: number) => {
+        if (!mapContainer.current) return;
+        
+        const mapInstance = new mapboxgl.Map({
+          container: mapContainer.current,
+          style: 'mapbox://styles/mapbox/streets-v12',
+          center: [longitude, latitude],
+          zoom,
+          pitch: 0,
+          bearing: 0
+        });
 
-      const mapInstance = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/streets-v12',
-        center: [30, 15],
-        zoom: 2,
-        pitch: 0,
-        bearing: 0
-      });
+        map.current = mapInstance;
 
-      map.current = mapInstance;
+        // Add navigation controls
+        const navControl = new mapboxgl.NavigationControl({
+          visualizePitch: true,
+        });
+        mapInstance.addControl(navControl, 'top-right');
 
-      // Add navigation controls
-      const navControl = new mapboxgl.NavigationControl({
-        visualizePitch: true,
-      });
-      mapInstance.addControl(navControl, 'top-right');
+        mapInstance.once('load', () => {
+          setIsMapReady(true);
+          isInitialized.current = true;
+          onMapInitialized(mapInstance);
+        });
 
-      console.log('Map initialized with default location');
-      mapInstance.once('load', () => {
-        console.log('Map loaded successfully');
-        setIsMapReady(true);
-        onMapInitialized(mapInstance);
-      });
+        return mapInstance;
+      };
+
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            createMap(longitude, latitude, 14);
+          },
+          () => {
+            createMap(30, 15, 2);
+          }
+        );
+      } else {
+        createMap(30, 15, 2);
+      }
     };
 
     initializeMap();
 
     return () => {
-      if (map.current) {
-        // Remove all event listeners and cleanup
+      if (map.current && !map.current.isStyleLoaded()) {
         map.current.remove();
         map.current = null;
+        setIsMapReady(false);
+        isInitialized.current = false;
       }
-      setIsMapReady(false);
-      mapInitializedRef.current = false;
     };
   }, [onMapInitialized]);
 
