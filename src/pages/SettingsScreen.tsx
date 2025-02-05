@@ -27,7 +27,7 @@ const SettingsScreen = () => {
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id)
-        .limit(1); // Add limit to ensure we only get one role
+        .limit(1);
       
       if (error) {
         console.error('Error fetching user role:', error);
@@ -105,9 +105,11 @@ const SettingsScreen = () => {
               </CardContent>
             </Card>
           ))}
-        </div>
 
-        <LogoutSection />
+          <div className="mb-4">
+            <LogoutSection />
+          </div>
+        </div>
       </ScrollArea>
     </div>
   );
