@@ -17,9 +17,10 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   const { toast } = useToast();
   const [isSatelliteView, setIsSatelliteView] = useState(false);
   const mapInitializedRef = useRef(false);
+  const [isMapReady, setIsMapReady] = useState(false);
 
   const toggleMapStyle = () => {
-    if (!map.current) return;
+    if (!map.current || !isMapReady) return;
     
     const newStyle = isSatelliteView
       ? 'mapbox://styles/mapbox/streets-v12'
@@ -72,7 +73,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
               
               if (!mapContainer.current) return;
               
-              map.current = new mapboxgl.Map({
+              const mapInstance = new mapboxgl.Map({
                 container: mapContainer.current,
                 style: 'mapbox://styles/mapbox/streets-v12',
                 center: [longitude, latitude],
@@ -81,16 +82,21 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
                 bearing: 0
               });
 
+              map.current = mapInstance;
+
               // Add navigation controls
               const navControl = new mapboxgl.NavigationControl({
                 visualizePitch: true,
               });
-              map.current.addControl(navControl, 'top-right');
+              mapInstance.addControl(navControl, 'top-right');
 
               console.log('Map initialized successfully at user location');
-              map.current.once('load', () => {
+
+              // Wait for both style and map to be loaded
+              mapInstance.once('load', () => {
                 console.log('Map loaded successfully');
-                onMapInitialized(map.current!);
+                setIsMapReady(true);
+                onMapInitialized(mapInstance);
               });
             },
             (error) => {
@@ -116,7 +122,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
     const initializeDefaultMap = (token: string) => {
       if (!mapContainer.current) return;
 
-      map.current = new mapboxgl.Map({
+      const mapInstance = new mapboxgl.Map({
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/streets-v12',
         center: [30, 15],
@@ -125,16 +131,19 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         bearing: 0
       });
 
+      map.current = mapInstance;
+
       // Add navigation controls
       const navControl = new mapboxgl.NavigationControl({
         visualizePitch: true,
       });
-      map.current.addControl(navControl, 'top-right');
+      mapInstance.addControl(navControl, 'top-right');
 
       console.log('Map initialized with default location');
-      map.current.once('load', () => {
+      mapInstance.once('load', () => {
         console.log('Map loaded successfully');
-        onMapInitialized(map.current!);
+        setIsMapReady(true);
+        onMapInitialized(mapInstance);
       });
     };
 
@@ -142,8 +151,11 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
 
     return () => {
       if (map.current) {
+        // Remove all event listeners and cleanup
         map.current.remove();
+        map.current = null;
       }
+      setIsMapReady(false);
       mapInitializedRef.current = false;
     };
   }, [onMapInitialized]);
@@ -157,6 +169,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
           size="icon"
           className="bg-white hover:bg-gray-100"
           onClick={toggleMapStyle}
+          disabled={!isMapReady}
         >
           {isSatelliteView ? <MapIcon /> : <Satellite />}
         </Button>
