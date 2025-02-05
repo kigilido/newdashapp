@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +21,7 @@ export const useConversationState = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const [selectedConversationTitle, setSelectedConversationTitle] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -52,9 +54,6 @@ export const useConversationState = () => {
       }
 
       setConversations(conversationsData);
-      if (conversationsData.length > 0 && !selectedConversation) {
-        setSelectedConversation(conversationsData[0].id);
-      }
       setIsLoading(false);
     } catch (error) {
       console.error('Error loading conversations:', error);
@@ -77,7 +76,34 @@ export const useConversationState = () => {
 
       if (messagesError) throw messagesError;
       
-      console.log('Loaded messages:', messageData);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // First get the participants
+      const { data: participants } = await supabase
+        .from('conversation_participants')
+        .select('user_id')
+        .eq('conversation_id', conversationId);
+
+      if (participants) {
+        // Find the other participant (not the current user)
+        const otherParticipant = participants.find(p => p.user_id !== user.id);
+        
+        if (otherParticipant) {
+          // Get the profile of the other participant
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', otherParticipant.user_id)
+            .single();
+
+          // Set just the username without "Chat with" prefix
+          setSelectedConversationTitle(profile?.username || "");
+        } else {
+          setSelectedConversationTitle("");
+        }
+      }
+
       setMessages(messageData || []);
       setIsLoading(false);
     } catch (error) {
@@ -97,6 +123,23 @@ export const useConversationState = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      // First verify that the user is a participant in this conversation
+      const { data: participantCheck, error: participantError } = await supabase
+        .from('conversation_participants')
+        .select('user_id')
+        .eq('conversation_id', selectedConversation)
+        .eq('user_id', user.id)
+        .single();
+
+      if (participantError || !participantCheck) {
+        toast({
+          title: "Error",
+          description: "You are not authorized to send messages in this conversation.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       const newMessage = {
         content,
@@ -141,6 +184,7 @@ export const useConversationState = () => {
     conversations,
     selectedConversation,
     setSelectedConversation,
+    selectedConversationTitle,
     isLoading,
     setIsLoading,
     checkAuth,

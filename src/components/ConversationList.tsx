@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,8 +26,7 @@ export const ConversationList = ({
   onSelect,
   onNewConversation,
 }: ConversationListProps) => {
-  const [newTitle, setNewTitle] = useState("");
-  const [recipientEmail, setRecipientEmail] = useState("");
+  const [recipientUsername, setRecipientUsername] = useState("");
   const { toast } = useToast();
   const [isCreating, setIsCreating] = useState(false);
 
@@ -35,27 +35,28 @@ export const ConversationList = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // First, get the recipient user from profiles
-      const { data: recipientProfile, error: profileError } = await supabase
+      // First, get the recipient user from profiles by username
+      const { data: profiles, error: profileError } = await supabase
         .from('profiles')
-        .select('id')
-        .eq('email', recipientEmail)
-        .single();
+        .select('id, username')
+        .eq('username', recipientUsername);
 
-      if (profileError || !recipientProfile) {
+      if (profileError || !profiles || profiles.length === 0) {
         toast({
           title: "Error",
-          description: "Recipient user not found",
+          description: "User not found",
           variant: "destructive",
         });
         return;
       }
 
+      const recipientProfile = profiles[0];
+
       // Create the conversation
       const { data: conversation, error } = await supabase
         .from('conversations')
         .insert([{
-          title: newTitle || 'New Chat',
+          title: `${recipientProfile.username}`,
           type: 'direct',
           creator_id: user.id
         }])
@@ -64,31 +65,45 @@ export const ConversationList = ({
 
       if (error) throw error;
 
-      // Add both users as participants
-      const { error: participantsError } = await supabase
-        .from('conversation_participants')
-        .insert([
-          {
-            conversation_id: conversation.id,
-            user_id: user.id
-          },
-          {
-            conversation_id: conversation.id,
-            user_id: recipientProfile.id
-          }
-        ]);
+      try {
+        // Add both users as participants
+        await supabase
+          .from('conversation_participants')
+          .insert([
+            {
+              conversation_id: conversation.id,
+              user_id: user.id
+            },
+            {
+              conversation_id: conversation.id,
+              user_id: recipientProfile.id
+            }
+          ]);
 
-      if (participantsError) throw participantsError;
-
-      setNewTitle("");
-      setRecipientEmail("");
-      setIsCreating(false);
-      onNewConversation();
-      
-      toast({
-        title: "Success",
-        description: "Chat created successfully",
-      });
+        setRecipientUsername("");
+        setIsCreating(false);
+        onNewConversation();
+        
+        toast({
+          title: "Success",
+          description: "Chat created successfully",
+        });
+      } catch (error: any) {
+        if (error?.message?.includes('unique constraint')) {
+          toast({
+            title: "Chat exists",
+            description: "A conversation with this user already exists",
+            variant: "destructive",
+          });
+          // Clean up the conversation we just created since we couldn't add participants
+          await supabase
+            .from('conversations')
+            .delete()
+            .eq('id', conversation.id);
+        } else {
+          throw error;
+        }
+      }
     } catch (error) {
       console.error('Error creating conversation:', error);
       toast({
@@ -99,30 +114,30 @@ export const ConversationList = ({
     }
   };
 
+  const getUsername = (title: string | null) => {
+    if (!title) return "New Chat";
+    if (title.startsWith("Chat with ")) {
+      return title.replace("Chat with ", "");
+    }
+    return title;
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         {isCreating ? (
           <div className="flex flex-col gap-2 w-full">
             <Input
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              placeholder="Chat name..."
-              className="flex-1"
-            />
-            <Input
-              value={recipientEmail}
-              onChange={(e) => setRecipientEmail(e.target.value)}
-              placeholder="Recipient email..."
-              type="email"
+              value={recipientUsername}
+              onChange={(e) => setRecipientUsername(e.target.value)}
+              placeholder="Enter username..."
               className="flex-1"
             />
             <div className="flex gap-2">
               <Button onClick={handleCreateConversation} className="flex-1">Create</Button>
               <Button variant="ghost" onClick={() => {
                 setIsCreating(false);
-                setNewTitle("");
-                setRecipientEmail("");
+                setRecipientUsername("");
               }}>Cancel</Button>
             </div>
           </div>
@@ -149,11 +164,8 @@ export const ConversationList = ({
             onClick={() => onSelect(conv.id)}
           >
             <h3 className="font-medium">
-              {conv.title || "New Chat"}
+              {getUsername(conv.title)}
             </h3>
-            <p className="text-sm text-muted-foreground">
-              {new Date(conv.created_at).toLocaleDateString()}
-            </p>
           </Card>
         ))}
       </div>

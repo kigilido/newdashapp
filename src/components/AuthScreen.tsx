@@ -1,119 +1,11 @@
-import { useState } from "react";
+
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { toast } from "./ui/use-toast";
 import { ArrowLeft } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { AuthForm } from "./auth/AuthForm";
 
 const AuthScreen = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
   const navigate = useNavigate();
-
-  const handleResendVerification = async () => {
-    try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email,
-      });
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Verification email sent",
-        description: "Please check your email for the verification link",
-      });
-    } catch (error) {
-      console.error("Error resending verification:", error);
-      toast({
-        title: "Error",
-        description: "Failed to resend verification email. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-
-        if (error) {
-          if (error.message === "User already registered") {
-            toast({
-              title: "Account already exists",
-              description: "Please sign in instead or use a different email.",
-              variant: "destructive",
-            });
-            setIsSignUp(false); // Switch to sign in mode
-            return;
-          }
-          throw error;
-        }
-
-        toast({
-          title: "Success",
-          description: "Please check your email to verify your account",
-        });
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) {
-          if (error.message === "Email not confirmed") {
-            toast({
-              title: "Email not verified",
-              description: (
-                <div className="space-y-2">
-                  <p>Please verify your email before signing in.</p>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleResendVerification();
-                    }}
-                  >
-                    Resend verification email
-                  </Button>
-                </div>
-              ),
-              duration: 10000,
-            });
-            return;
-          }
-          throw error;
-        }
-
-        toast({
-          title: "Success",
-          description: "Successfully logged in",
-        });
-        
-        navigate("/app");
-      }
-    } catch (error) {
-      console.error("Authentication error:", error);
-      toast({
-        title: "Error",
-        description: error.message || "An error occurred during authentication",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
@@ -129,39 +21,10 @@ const AuthScreen = () => {
         <div className="text-center">
           <h2 className="text-2xl font-bold">Welcome to DASH</h2>
           <p className="text-muted-foreground mt-2">
-            {isSignUp ? "Create an account" : "Sign in to your account"}
+            Sign in or create an account
           </p>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={isLoading}
-          />
-          <Input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={isLoading}
-          />
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Processing..." : isSignUp ? "Sign Up" : "Sign In"}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            className="w-full"
-            onClick={() => setIsSignUp(!isSignUp)}
-            disabled={isLoading}
-          >
-            {isSignUp
-              ? "Already have an account? Sign In"
-              : "Don't have an account? Sign Up"}
-          </Button>
-        </form>
+        <AuthForm />
       </div>
     </div>
   );

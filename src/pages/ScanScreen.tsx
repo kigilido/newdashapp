@@ -1,30 +1,147 @@
-
-import { Camera, CameraResultType, CameraDirection } from '@capacitor/camera';
-import { Button } from "@/components/ui/button";
+import { Camera, CameraResultType, CameraDirection, CameraSource } from '@capacitor/camera';
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
-import { Camera as CameraIcon } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { CameraPermissionHandler } from "@/components/camera/CameraPermissionHandler";
+import { PhotoPreview } from "@/components/camera/PhotoPreview";
+import { CameraButton } from "@/components/camera/CameraButton";
 
 const ScanScreen = () => {
   const [photo, setPhoto] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const requestPermission = async () => {
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        await navigator.mediaDevices.getUserMedia({ video: true });
+        setHasPermission(true);
+      }
+      const permission = await Camera.requestPermissions();
+      setHasPermission(permission.camera === 'granted');
+    } catch (error) {
+      console.error('Permission request error:', error);
+      toast({
+        title: "Permission Error",
+        description: "Please enable camera access in your browser settings to use this feature.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const findUserByLicensePlate = async (licensePlate: string) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('id, email')
+        .eq('license_plate', licensePlate)
+        .maybeSingle();
+
+      if (error) throw error;
+      return profile;
+    } catch (error) {
+      console.error('Error finding user:', error);
+      return null;
+    }
+  };
+
+  const createConversation = async (targetUserId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Create new conversation
+      const { data: conversation, error: convError } = await supabase
+        .from('conversations')
+        .insert([{
+          type: 'direct',
+          title: `Vehicle Chat`,
+          creator_id: user.id
+        }])
+        .select()
+        .single();
+
+      if (convError) throw convError;
+
+      // Add both users as participants
+      const { error: partError } = await supabase
+        .from('conversation_participants')
+        .insert([
+          { conversation_id: conversation.id, user_id: user.id },
+          { conversation_id: conversation.id, user_id: targetUserId }
+        ]);
+
+      if (partError) throw partError;
+
+      return conversation.id;
+    } catch (error) {
+      console.error('Error creating conversation:', error);
+      throw error;
+    }
+  };
+
+  const processLicensePlate = async (licensePlate: string) => {
+    setIsProcessing(true);
+    try {
+      const profile = await findUserByLicensePlate(licensePlate);
+      
+      if (!profile) {
+        toast({
+          title: "Vehicle Not Found",
+          description: "No registered user found with this license plate.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const conversationId = await createConversation(profile.id);
+      
+      toast({
+        title: "Success",
+        description: "Vehicle found! Starting chat...",
+      });
+
+      // Navigate to chat with the new conversation
+      navigate(`/app/chat?conversation=${conversationId}`);
+
+    } catch (error) {
+      console.error('Error processing license plate:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process license plate. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const takePicture = async () => {
+    if (!hasPermission) {
+      await requestPermission();
+      return;
+    }
+
     try {
       const image = await Camera.getPhoto({
         quality: 90,
         allowEditing: false,
         resultType: CameraResultType.DataUrl,
-        direction: CameraDirection.Rear // Fixed: Using correct enum value 'Rear' instead of 'BACK'
+        source: CameraSource.Camera,
+        direction: CameraDirection.Rear
       });
 
-      setPhoto(image.dataUrl || null);
-      
-      toast({
-        title: "Photo captured",
-        description: "Your photo has been captured successfully.",
-      });
+      if (image.dataUrl) {
+        setPhoto(image.dataUrl);
+        // TODO: Replace with actual OCR/license plate recognition
+        // For now, we'll use a mock license plate for testing
+        const mockLicensePlate = "ABC123";
+        await processLicensePlate(mockLicensePlate);
+      }
     } catch (error) {
       console.error('Camera error:', error);
       toast({
@@ -37,35 +154,23 @@ const ScanScreen = () => {
 
   return (
     <div className="space-y-4 h-[calc(100vh-12rem)]">
+      <CameraPermissionHandler 
+        hasPermission={hasPermission}
+        setHasPermission={setHasPermission}
+      />
       <Card className="p-4 h-full flex flex-col items-center justify-center bg-white/50 backdrop-blur-sm border-white/20">
         {photo ? (
-          <div className="space-y-4 w-full flex flex-col items-center">
-            <img 
-              src={photo} 
-              alt="Captured" 
-              className="w-full max-w-md rounded-lg shadow-lg"
-            />
-            <Button 
-              onClick={() => setPhoto(null)}
-              variant="outline"
-            >
-              Take Another Photo
-            </Button>
-          </div>
+          <PhotoPreview 
+            photoUrl={photo}
+            onRetake={() => setPhoto(null)}
+            isProcessing={isProcessing}
+          />
         ) : (
-          <div className="space-y-4 text-center">
-            <Button 
-              onClick={takePicture}
-              size="lg"
-              className="gap-2"
-            >
-              <CameraIcon className="w-5 h-5" />
-              Take Photo
-            </Button>
-            <p className="text-sm text-gray-500">
-              Click to access your device's camera
-            </p>
-          </div>
+          <CameraButton 
+            onClick={takePicture}
+            isProcessing={isProcessing}
+            hasPermission={hasPermission}
+          />
         )}
       </Card>
     </div>

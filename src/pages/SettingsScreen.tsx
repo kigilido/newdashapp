@@ -1,108 +1,116 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { LogOut, User } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
+import { 
+  UserCircle, 
+  Settings as SettingsIcon, 
+  Shield,
+  ChevronRight,
+  Settings2
+} from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { LogoutSection } from "@/components/settings/LogoutSection";
 import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const SettingsScreen = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
 
-  const { data: profile } = useQuery({
-    queryKey: ['profile'],
+  const { data: userRole } = useQuery({
+    queryKey: ['userRole'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
+      if (!user) return null;
+
+      // First check if user has a role
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .limit(1);
       
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      return {
-        email: user.email,
-        ...profile
-      };
-    },
+      if (error) {
+        console.error('Error fetching user role:', error);
+        return null;
+      }
+
+      // If no role exists yet, create default 'user' role
+      if (!data || data.length === 0) {
+        const { data: newRole, error: insertError } = await supabase
+          .from('user_roles')
+          .insert([{ user_id: user.id, role: 'user' }])
+          .select('role')
+          .single();
+          
+        if (insertError) {
+          console.error('Error creating user role:', insertError);
+          return null;
+        }
+        return newRole?.role;
+      }
+
+      return data[0]?.role;
+    }
   });
 
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      navigate("/auth");
-      toast({
-        title: "Logged out successfully",
-        description: "See you soon!",
-      });
-    } catch (error) {
-      toast({
-        title: "Error logging out",
-        description: "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
+  const settingsCategories = [
+    {
+      title: "Account Information",
+      icon: UserCircle,
+      path: "/app/settings/account",
+      description: "Manage your account details, email, and password"
+    },
+    {
+      title: "General",
+      icon: SettingsIcon,
+      path: "/app/settings/general",
+      description: "App preferences and customization"
+    },
+    {
+      title: "Privacy",
+      icon: Shield,
+      path: "/app/settings/privacy",
+      description: "Control your privacy and security settings"
+    },
+    // Only show admin settings if user has admin role
+    ...(userRole === 'admin' ? [{
+      title: "Admin Settings",
+      icon: Settings2,
+      path: "/app/settings/admin",
+      description: "Manage application settings and configurations"
+    }] : [])
+  ];
 
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Settings</h1>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Account Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-1">
-            <Label className="text-muted-foreground">Email</Label>
-            <p className="font-medium">{profile?.email}</p>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-muted-foreground">Member since</Label>
-            <p className="font-medium">
-              {profile?.created_at 
-                ? new Date(profile.created_at).toLocaleDateString()
-                : 'Loading...'}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <ScrollArea className="h-[calc(100vh-12rem)]">
+        <div className="space-y-3 pr-4">
+          {settingsCategories.map((category) => (
+            <Card
+              key={category.title}
+              className="cursor-pointer hover:bg-accent/50 transition-colors"
+              onClick={() => navigate(category.path)}
+            >
+              <CardContent className="flex items-center p-4">
+                <category.icon className="h-5 w-5 mr-3 text-muted-foreground" />
+                <div className="flex-1">
+                  <h3 className="font-medium">{category.title}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {category.description}
+                  </p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </CardContent>
+            </Card>
+          ))}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Preferences</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="notifications">Push Notifications</Label>
-            <Switch id="notifications" />
+          <div className="mb-4">
+            <LogoutSection />
           </div>
-          <div className="flex items-center justify-between">
-            <Label htmlFor="darkMode">Dark Mode</Label>
-            <Switch id="darkMode" />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="pt-6">
-          <Button 
-            variant="destructive" 
-            className="w-full" 
-            onClick={handleLogout}
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            Log Out
-          </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </ScrollArea>
     </div>
   );
 };
