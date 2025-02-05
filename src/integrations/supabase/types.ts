@@ -236,6 +236,30 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicle_locations: {
+        Row: {
+          id: string
+          last_updated: string
+          latitude: number
+          longitude: number
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          last_updated?: string
+          latitude: number
+          longitude: number
+          user_id: string
+        }
+        Update: {
+          id?: string
+          last_updated?: string
+          latitude?: number
+          longitude?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

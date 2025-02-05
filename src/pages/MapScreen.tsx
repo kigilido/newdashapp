@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -7,12 +8,46 @@ import { Search, Navigation2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import { useQuery } from '@tanstack/react-query';
 
 const MapScreen = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
+  const markersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
   const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
+
+  // Fetch nearby vehicles
+  const { data: nearbyVehicles } = useQuery({
+    queryKey: ['nearby-vehicles'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('vehicle_locations')
+        .select('*, profiles:profiles(username, license_plate)')
+        .order('last_updated', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 10000, // Refetch every 10 seconds
+  });
+
+  const updateUserLocation = async (latitude: number, longitude: number) => {
+    try {
+      const { error } = await supabase
+        .from('vehicle_locations')
+        .upsert({
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          latitude,
+          longitude,
+          last_updated: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating location:', error);
+    }
+  };
 
   const handleSearch = async () => {
     if (!map.current || !searchQuery) return;
@@ -48,7 +83,7 @@ const MapScreen = () => {
 
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
+        async (position) => {
           const { latitude, longitude } = position.coords;
           
           map.current?.flyTo({
@@ -58,13 +93,8 @@ const MapScreen = () => {
             essential: true
           });
 
-          // Add a marker for the user's location
-          new mapboxgl.Marker({
-            color: '#7c3aed', // Purple marker to match theme
-            scale: 0.8
-          })
-            .setLngLat([longitude, latitude])
-            .addTo(map.current);
+          // Update user's location in the database
+          await updateUserLocation(latitude, longitude);
 
           toast({
             title: "Location Found",
@@ -89,6 +119,39 @@ const MapScreen = () => {
     }
   };
 
+  // Update vehicle markers on the map
+  useEffect(() => {
+    if (!map.current || !nearbyVehicles) return;
+
+    // Remove old markers
+    Object.values(markersRef.current).forEach(marker => marker.remove());
+    markersRef.current = {};
+
+    // Add new markers
+    nearbyVehicles.forEach((vehicle) => {
+      if (!vehicle.profiles?.username && !vehicle.profiles?.license_plate) return;
+
+      const marker = new mapboxgl.Marker({
+        color: '#7c3aed',
+        scale: 0.8
+      })
+        .setLngLat([vehicle.longitude, vehicle.latitude])
+        .setPopup(
+          new mapboxgl.Popup({ offset: 25 })
+            .setHTML(
+              `<div class="p-2">
+                ${vehicle.profiles?.username ? `<p>User: ${vehicle.profiles.username}</p>` : ''}
+                ${vehicle.profiles?.license_plate ? `<p>Plate: ${vehicle.profiles.license_plate}</p>` : ''}
+                <p>Last seen: ${new Date(vehicle.last_updated).toLocaleTimeString()}</p>
+              </div>`
+            )
+        )
+        .addTo(map.current);
+
+      markersRef.current[vehicle.user_id] = marker;
+    });
+  }, [nearbyVehicles]);
+
   useEffect(() => {
     const initializeMap = async () => {
       try {
@@ -104,8 +167,7 @@ const MapScreen = () => {
         
         map.current = new mapboxgl.Map({
           container: mapContainer.current,
-          // Change the style here to any of the available styles
-          style: 'mapbox://styles/mapbox/satellite-streets-v12', // Changed from light-v11 to satellite-streets
+          style: 'mapbox://styles/mapbox/satellite-streets-v12',
           projection: 'globe',
           zoom: 1.5,
           center: [30, 15],
