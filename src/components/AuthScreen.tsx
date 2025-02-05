@@ -8,7 +8,7 @@ import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const AuthScreen = () => {
-  const [email, setEmail] = useState("");
+  const [emailOrUsername, setEmailOrUsername] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [licensePlate, setLicensePlate] = useState("");
@@ -20,7 +20,7 @@ const AuthScreen = () => {
     try {
       const { error } = await supabase.auth.resend({
         type: 'signup',
-        email,
+        email: emailOrUsername,
       });
       
       if (error) throw error;
@@ -62,8 +62,9 @@ const AuthScreen = () => {
 
     try {
       if (isSignUp) {
+        // For signup, we always use email
         const { data: { user }, error } = await supabase.auth.signUp({
-          email,
+          email: emailOrUsername,
           password,
         });
 
@@ -89,35 +90,55 @@ const AuthScreen = () => {
           description: "Please check your email to verify your account",
         });
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
+        // For login, first try with email
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: emailOrUsername,
           password,
         });
 
-        if (error) {
-          if (error.message === "Email not confirmed") {
-            toast({
-              title: "Email not verified",
-              description: (
-                <div className="space-y-2">
-                  <p>Please verify your email before signing in.</p>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleResendVerification();
-                    }}
-                  >
-                    Resend verification email
-                  </Button>
-                </div>
-              ),
-              duration: 10000,
-            });
-            return;
+        if (signInError) {
+          // If email login fails, try to find user by username
+          const { data: profiles, error: profileError } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('username', emailOrUsername)
+            .single();
+
+          if (profileError) {
+            throw signInError; // If no username found, show original error
           }
-          throw error;
+
+          // Try login with email from profile
+          const { error: finalError } = await supabase.auth.signInWithPassword({
+            email: profiles.email,
+            password,
+          });
+
+          if (finalError) {
+            if (finalError.message === "Email not confirmed") {
+              toast({
+                title: "Email not verified",
+                description: (
+                  <div className="space-y-2">
+                    <p>Please verify your email before signing in.</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleResendVerification();
+                      }}
+                    >
+                      Resend verification email
+                    </Button>
+                  </div>
+                ),
+                duration: 10000,
+              });
+              return;
+            }
+            throw finalError;
+          }
         }
 
         toast({
@@ -158,10 +179,10 @@ const AuthScreen = () => {
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            placeholder={isSignUp ? "Email" : "Email or Username"}
+            value={emailOrUsername}
+            onChange={(e) => setEmailOrUsername(e.target.value)}
             disabled={isLoading}
           />
           <Input
