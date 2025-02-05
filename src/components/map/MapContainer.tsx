@@ -49,25 +49,43 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         
         mapboxgl.accessToken = data.token;
         console.log('Initializing map...');
-        
-        map.current = new mapboxgl.Map({
-          container: mapContainer.current,
-          style: 'mapbox://styles/mapbox/streets-v12',
-          center: [30, 15],
-          zoom: 2,
-          pitch: 0,
-          bearing: 0
-        });
 
-        // Add navigation controls
-        const navControl = new mapboxgl.NavigationControl({
-          visualizePitch: true,
-        });
-        map.current.addControl(navControl, 'top-right');
+        // Get user's location
+        if ('geolocation' in navigator) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const { latitude, longitude } = position.coords;
+              
+              map.current = new mapboxgl.Map({
+                container: mapContainer.current!,
+                style: 'mapbox://styles/mapbox/streets-v12',
+                center: [longitude, latitude],
+                zoom: 14,
+                pitch: 0,
+                bearing: 0
+              });
 
-        console.log('Map initialized successfully');
-        // Notify parent component that map is initialized
-        onMapInitialized(map.current);
+              // Add navigation controls
+              const navControl = new mapboxgl.NavigationControl({
+                visualizePitch: true,
+              });
+              map.current.addControl(navControl, 'top-right');
+
+              console.log('Map initialized successfully at user location');
+              // Notify parent component that map is initialized
+              onMapInitialized(map.current);
+
+            },
+            (error) => {
+              console.error('Error getting location:', error);
+              // Fall back to default location if geolocation fails
+              initializeDefaultMap(data.token);
+            }
+          );
+        } else {
+          console.log('Geolocation not supported, using default location');
+          initializeDefaultMap(data.token);
+        }
 
       } catch (error) {
         console.error('Error in map initialization:', error);
@@ -77,6 +95,29 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
           variant: "destructive",
         });
       }
+    };
+
+    const initializeDefaultMap = (token: string) => {
+      if (!mapContainer.current) return;
+
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [30, 15],
+        zoom: 2,
+        pitch: 0,
+        bearing: 0
+      });
+
+      // Add navigation controls
+      const navControl = new mapboxgl.NavigationControl({
+        visualizePitch: true,
+      });
+      map.current.addControl(navControl, 'top-right');
+
+      console.log('Map initialized with default location');
+      // Notify parent component that map is initialized
+      onMapInitialized(map.current);
     };
 
     initializeMap();
