@@ -21,12 +21,33 @@ const SettingsScreen = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
-      const { data } = await supabase
+      // First check if user has a role
+      const { data, error } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       
+      if (error) {
+        console.error('Error fetching user role:', error);
+        return null;
+      }
+
+      // If no role exists yet, create default 'user' role
+      if (!data) {
+        const { data: newRole, error: insertError } = await supabase
+          .from('user_roles')
+          .insert([{ user_id: user.id, role: 'user' }])
+          .select('role')
+          .single();
+          
+        if (insertError) {
+          console.error('Error creating user role:', insertError);
+          return null;
+        }
+        return newRole?.role;
+      }
+
       return data?.role;
     }
   });
