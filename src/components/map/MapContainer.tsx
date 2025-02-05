@@ -112,7 +112,13 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
 
     // Cleanup
     return () => {
-      map.current?.remove();
+      if (map.current && map.current.getStyle()) {
+        try {
+          map.current.remove();
+        } catch (error) {
+          console.error('Error cleaning up map:', error);
+        }
+      }
     };
   }, [onMapInitialized]);
 
