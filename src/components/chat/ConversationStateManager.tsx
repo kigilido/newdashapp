@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -52,9 +53,6 @@ export const useConversationState = () => {
       }
 
       setConversations(conversationsData);
-      if (conversationsData.length > 0 && !selectedConversation) {
-        setSelectedConversation(conversationsData[0].id);
-      }
       setIsLoading(false);
     } catch (error) {
       console.error('Error loading conversations:', error);
