@@ -40,13 +40,37 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
       locationMarker.current.remove();
     }
 
-    // Create a new marker
-    locationMarker.current = new mapboxgl.Marker({
-      color: '#7c3aed',
-      scale: 0.8
-    })
-      .setLngLat([longitude, latitude])
-      .addTo(map.current);
+    try {
+      // Create a new marker
+      locationMarker.current = new mapboxgl.Marker({
+        color: '#7c3aed',
+        scale: 0.8,
+        draggable: false
+      })
+        .setLngLat([longitude, latitude])
+        .addTo(map.current);
+
+      // Add a popup
+      new mapboxgl.Popup({
+        closeButton: false,
+        closeOnClick: false
+      })
+        .setLngLat([longitude, latitude])
+        .setHTML('<div class="text-sm font-medium">Your location</div>')
+        .addTo(map.current);
+
+      toast({
+        title: "Location Updated",
+        description: "Your current location has been marked on the map.",
+      });
+    } catch (error) {
+      console.error('Error adding location marker:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add location marker to the map.",
+        variant: "destructive"
+      });
+    }
   };
 
   useEffect(() => {
@@ -105,8 +129,14 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         mapInstance.addControl(navControl, 'top-right');
 
         mapInstance.once('load', () => {
-          // Add location marker after map is loaded
+          // Add location marker after map is loaded and fly to location
           addLocationMarker(longitude, latitude);
+          mapInstance.flyTo({
+            center: [longitude, latitude],
+            zoom: 14,
+            essential: true
+          });
+          
           setIsMapReady(true);
           isInitialized.current = true;
           onMapInitialized(mapInstance);
@@ -121,8 +151,19 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
             const { latitude, longitude } = position.coords;
             createMap(longitude, latitude, 14);
           },
-          () => {
+          (error) => {
+            console.error('Geolocation error:', error);
+            toast({
+              title: "Location Access Denied",
+              description: "Using default map location. Please enable location access for better experience.",
+              variant: "destructive"
+            });
             createMap(30, 15, 2);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
           }
         );
       } else {
@@ -163,4 +204,3 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
     </div>
   );
 };
-
