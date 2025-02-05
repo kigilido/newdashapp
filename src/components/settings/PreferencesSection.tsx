@@ -5,34 +5,103 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export const PreferencesSection = () => {
-  const [theme, setTheme] = useState<"light" | "dark" | "auto">("light");
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Check system dark mode preference
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
 
+  // Fetch current theme preference
+  const { data: themePreference, isLoading } = useQuery({
+    queryKey: ['themePreference'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase
+        .from('theme_preferences')
+        .select('theme')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        // If no preference exists, create one with default theme
+        if (error.code === 'PGRST116') {
+          const { data: newPref } = await supabase
+            .from('theme_preferences')
+            .insert([{ id: user.id, theme: 'light' }])
+            .select()
+            .single();
+          return newPref;
+        }
+        throw error;
+      }
+
+      return data;
+    },
+  });
+
+  // Update theme preference mutation
+  const { mutate: updateTheme } = useMutation({
+    mutationFn: async (newTheme: "light" | "dark" | "auto") => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('theme_preferences')
+        .upsert({ id: user.id, theme: newTheme });
+
+      if (error) throw error;
+      return newTheme;
+    },
+    onSuccess: (newTheme) => {
+      queryClient.setQueryData(['themePreference'], { theme: newTheme });
+      toast({
+        title: "Theme Updated",
+        description: `Theme set to ${newTheme} mode`,
+      });
+    },
+  });
+
+  // Apply theme based on preference and system setting
   useEffect(() => {
-    // Set initial theme based on system preference if auto is selected
-    if (theme === "auto") {
+    if (!themePreference) return;
+
+    if (themePreference.theme === "auto") {
       document.documentElement.classList.toggle("dark", prefersDark.matches);
     } else {
-      document.documentElement.classList.toggle("dark", theme === "dark");
+      document.documentElement.classList.toggle("dark", themePreference.theme === "dark");
     }
-  }, [theme]);
+  }, [themePreference, prefersDark.matches]);
 
   // Listen for system theme changes when auto is selected
   useEffect(() => {
     const handleChange = (e: MediaQueryListEvent) => {
-      if (theme === "auto") {
+      if (themePreference?.theme === "auto") {
         document.documentElement.classList.toggle("dark", e.matches);
       }
     };
 
     prefersDark.addEventListener("change", handleChange);
     return () => prefersDark.removeEventListener("change", handleChange);
-  }, [theme]);
+  }, [themePreference]);
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Preferences</CardTitle>
+        </CardHeader>
+        <CardContent>
+          Loading...
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -48,13 +117,9 @@ export const PreferencesSection = () => {
         <div className="space-y-3">
           <Label>Theme</Label>
           <RadioGroup
-            value={theme}
+            value={themePreference?.theme || 'light'}
             onValueChange={(value: "light" | "dark" | "auto") => {
-              setTheme(value);
-              toast({
-                title: "Theme Updated",
-                description: `Theme set to ${value} mode`,
-              });
+              updateTheme(value);
             }}
             className="flex flex-col space-y-2"
           >
