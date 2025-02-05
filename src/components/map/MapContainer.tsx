@@ -14,6 +14,7 @@ interface MapContainerProps {
 export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
+  const locationMarker = useRef<mapboxgl.Marker | null>(null);
   const { toast } = useToast();
   const [isSatelliteView, setIsSatelliteView] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
@@ -29,6 +30,23 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
     
     map.current.setStyle(newStyle);
     setIsSatelliteView(!isSatelliteView);
+  };
+
+  const addLocationMarker = (longitude: number, latitude: number) => {
+    if (!map.current) return;
+
+    // Remove existing marker if it exists
+    if (locationMarker.current) {
+      locationMarker.current.remove();
+    }
+
+    // Create a new marker
+    locationMarker.current = new mapboxgl.Marker({
+      color: '#7c3aed',
+      scale: 0.8
+    })
+      .setLngLat([longitude, latitude])
+      .addTo(map.current);
   };
 
   useEffect(() => {
@@ -87,6 +105,8 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         mapInstance.addControl(navControl, 'top-right');
 
         mapInstance.once('load', () => {
+          // Add location marker after map is loaded
+          addLocationMarker(longitude, latitude);
           setIsMapReady(true);
           isInitialized.current = true;
           onMapInitialized(mapInstance);
@@ -113,6 +133,9 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
     initializeMap();
 
     return () => {
+      if (locationMarker.current) {
+        locationMarker.current.remove();
+      }
       if (map.current && !map.current.isStyleLoaded()) {
         map.current.remove();
         map.current = null;
@@ -140,3 +163,4 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
     </div>
   );
 };
+
