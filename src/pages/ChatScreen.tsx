@@ -5,13 +5,16 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { MessagesArea } from "@/components/MessagesArea";
 import { ConversationList } from "@/components/ConversationList";
+import { ContactsList } from "@/components/ContactsList";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNotifications } from "@/components/chat/NotificationsHandler";
 import { useSubscription } from "@/components/chat/SubscriptionManager";
 import { useConversationState } from "@/components/chat/ConversationStateManager";
+import { ChatEnvironmentToggle } from "@/components/chat/ChatEnvironmentToggle";
 
 const ChatScreen = () => {
   const [showConversations, setShowConversations] = useState(true);
+  const [chatEnvironment, setChatEnvironment] = useState<"general" | "contacts">("general");
   const isMobile = useIsMobile();
   const { showNotification } = useNotifications();
   const {
@@ -66,17 +69,36 @@ const ChatScreen = () => {
     setSelectedConversation(null);
   };
 
+  const handleToggleEnvironment = () => {
+    setChatEnvironment(prev => prev === "general" ? "contacts" : "general");
+    setSelectedConversation(null);
+    setShowConversations(true);
+  };
+
+  const renderChatList = () => {
+    if (chatEnvironment === "contacts") {
+      return <ContactsList />;
+    }
+    return (
+      <ConversationList
+        conversations={conversations}
+        selectedId={selectedConversation}
+        onSelect={setSelectedConversation}
+        onNewConversation={handleNewConversation}
+      />
+    );
+  };
+
   if (isMobile) {
     return (
-      <div className="h-[calc(100vh-12rem)]">
+      <div className="h-[calc(100vh-12rem)] relative">
+        <ChatEnvironmentToggle 
+          environment={chatEnvironment} 
+          onToggle={handleToggleEnvironment} 
+        />
         {showConversations ? (
           <div className="h-full overflow-y-auto">
-            <ConversationList
-              conversations={conversations}
-              selectedId={selectedConversation}
-              onSelect={setSelectedConversation}
-              onNewConversation={handleNewConversation}
-            />
+            {renderChatList()}
           </div>
         ) : (
           <div className="h-full flex flex-col">
@@ -87,7 +109,7 @@ const ChatScreen = () => {
                 className="flex items-center gap-2 text-violet-600"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Back to Conversations
+                Back to {chatEnvironment === "contacts" ? "Contacts" : "Conversations"}
               </Button>
             </div>
             <Card className="flex-1 p-4 bg-white/50 backdrop-blur-sm border-white/20 flex flex-col">
@@ -104,15 +126,14 @@ const ChatScreen = () => {
   }
 
   return (
-    <div className="h-[calc(100vh-12rem)]">
+    <div className="h-[calc(100vh-12rem)] relative">
+      <ChatEnvironmentToggle 
+        environment={chatEnvironment} 
+        onToggle={handleToggleEnvironment} 
+      />
       {showConversations ? (
         <div className="h-full overflow-y-auto">
-          <ConversationList
-            conversations={conversations}
-            selectedId={selectedConversation}
-            onSelect={setSelectedConversation}
-            onNewConversation={handleNewConversation}
-          />
+          {renderChatList()}
         </div>
       ) : (
         <div className="h-full flex flex-col">
@@ -123,7 +144,7 @@ const ChatScreen = () => {
               className="flex items-center gap-2 text-violet-600"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to Conversations
+              Back to {chatEnvironment === "contacts" ? "Contacts" : "Conversations"}
             </Button>
           </div>
           <Card className="flex-1 p-4 bg-white/50 backdrop-blur-sm border-white/20 flex flex-col">
