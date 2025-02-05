@@ -1,11 +1,12 @@
 import { Camera, CameraResultType, CameraDirection, CameraSource } from '@capacitor/camera';
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useState, useEffect } from "react";
-import { Camera as CameraIcon } from "lucide-react";
+import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { CameraPermissionHandler } from "@/components/camera/CameraPermissionHandler";
+import { PhotoPreview } from "@/components/camera/PhotoPreview";
+import { CameraButton } from "@/components/camera/CameraButton";
 
 const ScanScreen = () => {
   const [photo, setPhoto] = useState<string | null>(null);
@@ -13,51 +14,6 @@ const ScanScreen = () => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    checkPermissions();
-  }, []);
-
-  const checkPermissions = async () => {
-    try {
-      const permission = await Camera.checkPermissions();
-      setHasPermission(permission.camera === 'granted');
-      
-      if (permission.camera !== 'granted') {
-        // For iOS Safari, we need to show a button that triggers the permission request
-        if (
-          navigator.mediaDevices &&
-          navigator.mediaDevices.getUserMedia
-        ) {
-          try {
-            // This will trigger the permission prompt
-            await navigator.mediaDevices.getUserMedia({ video: true });
-            setHasPermission(true);
-          } catch (err) {
-            console.error('Permission error:', err);
-            setHasPermission(false);
-          }
-        }
-        
-        // Also try Capacitor's permission request
-        try {
-          const newPermission = await Camera.requestPermissions();
-          setHasPermission(newPermission.camera === 'granted');
-        } catch (err) {
-          console.error('Capacitor permission error:', err);
-          setHasPermission(false);
-        }
-      }
-    } catch (error) {
-      console.error('Permission check error:', error);
-      setHasPermission(false);
-      toast({
-        title: "Permission Error",
-        description: "Unable to access camera. Please check your permissions in your browser settings.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const requestPermission = async () => {
     try {
@@ -198,42 +154,23 @@ const ScanScreen = () => {
 
   return (
     <div className="space-y-4 h-[calc(100vh-12rem)]">
+      <CameraPermissionHandler 
+        hasPermission={hasPermission}
+        setHasPermission={setHasPermission}
+      />
       <Card className="p-4 h-full flex flex-col items-center justify-center bg-white/50 backdrop-blur-sm border-white/20">
         {photo ? (
-          <div className="space-y-4 w-full flex flex-col items-center">
-            <img 
-              src={photo} 
-              alt="Captured" 
-              className="w-full max-w-md rounded-lg shadow-lg"
-            />
-            <Button 
-              onClick={() => setPhoto(null)}
-              variant="outline"
-              disabled={isProcessing}
-            >
-              Take Another Photo
-            </Button>
-          </div>
+          <PhotoPreview 
+            photoUrl={photo}
+            onRetake={() => setPhoto(null)}
+            isProcessing={isProcessing}
+          />
         ) : (
-          <div className="space-y-4 text-center">
-            <Button 
-              onClick={takePicture}
-              size="lg"
-              className="gap-2"
-              disabled={isProcessing}
-            >
-              <CameraIcon className="w-5 h-5" />
-              {hasPermission === false ? "Enable Camera" : isProcessing ? "Processing..." : "Take Photo"}
-            </Button>
-            {hasPermission === false && (
-              <p className="text-sm text-red-500">
-                Camera access is required. Please enable it in your browser settings.
-              </p>
-            )}
-            <p className="text-sm text-gray-500">
-              Scan a vehicle's license plate to start a chat
-            </p>
-          </div>
+          <CameraButton 
+            onClick={takePicture}
+            isProcessing={isProcessing}
+            hasPermission={hasPermission}
+          />
         )}
       </Card>
     </div>
