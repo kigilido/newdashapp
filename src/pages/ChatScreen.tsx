@@ -75,9 +75,20 @@ const ChatScreen = () => {
     setShowConversations(true);
   };
 
+  const handleContactSelect = async (contactId: string) => {
+    // This function will be implemented when contact selection is needed
+    // It will create or load an existing conversation with the contact
+  };
+
   const renderChatList = () => {
     if (chatEnvironment === "contacts") {
-      return <ContactsList />;
+      return (
+        <ContactsList
+          selectedId={selectedConversation}
+          onSelect={handleContactSelect}
+          onNewContact={handleNewConversation}
+        />
+      );
     }
     return (
       <ConversationList
