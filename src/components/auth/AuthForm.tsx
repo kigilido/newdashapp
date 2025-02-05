@@ -80,13 +80,13 @@ export const AuthForm = () => {
 
         if (signInError) {
           // If email login fails, try to find user by username
-          const { data: profiles, error: profileError } = await supabase
+          const { data: profiles } = await supabase
             .from('profiles')
             .select('email')
             .eq('username', emailOrUsername)
-            .single();
+            .maybeSingle();
 
-          if (profileError) {
+          if (!profiles) {
             throw signInError; // If no username found, show original error
           }
 
@@ -188,4 +188,3 @@ export const AuthForm = () => {
     </form>
   );
 };
-
