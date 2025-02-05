@@ -32,7 +32,9 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
     const initializeMap = async () => {
       try {
         console.log('Fetching Mapbox token...');
-        const { data, error } = await supabase.functions.invoke('get-mapbox-token');
+        const { data, error } = await supabase.functions.invoke('get-mapbox-token', {
+          method: 'POST',
+        });
         
         if (error) {
           console.error('Error fetching Mapbox token:', error);
@@ -41,7 +43,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
             description: "Failed to initialize the map. Please try again later.",
             variant: "destructive",
           });
-          throw error;
+          return;
         }
         
         if (!data?.token) {
@@ -86,13 +88,14 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
               map.current.addControl(navControl, 'top-right');
 
               console.log('Map initialized successfully at user location');
-              // Notify parent component that map is initialized
-              onMapInitialized(map.current);
+              map.current.on('load', () => {
+                console.log('Map loaded successfully');
+                onMapInitialized(map.current!);
+              });
 
             },
             (error) => {
               console.error('Error getting location:', error);
-              // Fall back to default location if geolocation fails
               initializeDefaultMap(data.token);
             }
           );
@@ -130,8 +133,10 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
       map.current.addControl(navControl, 'top-right');
 
       console.log('Map initialized with default location');
-      // Notify parent component that map is initialized
-      onMapInitialized(map.current);
+      map.current.on('load', () => {
+        console.log('Map loaded successfully');
+        onMapInitialized(map.current!);
+      });
     };
 
     initializeMap();
@@ -139,11 +144,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
     // Cleanup
     return () => {
       if (map.current) {
-        try {
-          map.current.remove();
-        } catch (error) {
-          console.error('Error cleaning up map:', error);
-        }
+        map.current.remove();
       }
     };
   }, [onMapInitialized]);
