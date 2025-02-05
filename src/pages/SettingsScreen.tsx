@@ -1,16 +1,22 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { LogOut, User } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { LogOut, User, Mail, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 
 const SettingsScreen = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [newEmail, setNewEmail] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
 
   const { data: profile } = useQuery({
     queryKey: ['profile'],
@@ -30,6 +36,48 @@ const SettingsScreen = () => {
       };
     },
   });
+
+  const handleUpdateEmail = async () => {
+    try {
+      const { error } = await supabase.auth.updateUser({ email: newEmail });
+      if (error) throw error;
+      
+      toast({
+        title: "Email update initiated",
+        description: "Please check your new email for confirmation.",
+      });
+      setNewEmail("");
+    } catch (error) {
+      toast({
+        title: "Error updating email",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    try {
+      const { error } = await supabase.auth.updateUser({ 
+        password: newPassword 
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Password updated",
+        description: "Your password has been changed successfully.",
+      });
+      setCurrentPassword("");
+      setNewPassword("");
+    } catch (error) {
+      toast({
+        title: "Error updating password",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -72,6 +120,70 @@ const SettingsScreen = () => {
                 : 'Loading...'}
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            Update Email
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="newEmail">New Email Address</Label>
+            <Input
+              id="newEmail"
+              type="email"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              placeholder="Enter new email address"
+            />
+          </div>
+          <Button 
+            onClick={handleUpdateEmail}
+            disabled={!newEmail || newEmail === profile?.email}
+          >
+            Update Email
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Lock className="h-5 w-5" />
+            Change Password
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="currentPassword">Current Password</Label>
+            <Input
+              id="currentPassword"
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Enter current password"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="newPassword">New Password</Label>
+            <Input
+              id="newPassword"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Enter new password"
+            />
+          </div>
+          <Button 
+            onClick={handleUpdatePassword}
+            disabled={!currentPassword || !newPassword}
+          >
+            Update Password
+          </Button>
         </CardContent>
       </Card>
 
