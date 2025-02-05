@@ -52,34 +52,6 @@ export const ConversationList = ({
 
       const recipientProfile = profiles[0];
 
-      // Check if a conversation already exists between these users
-      const { data: existingConversations } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id')
-        .eq('user_id', user.id);
-
-      if (existingConversations) {
-        for (const conv of existingConversations) {
-          const { data: otherParticipant } = await supabase
-            .from('conversation_participants')
-            .select('user_id')
-            .eq('conversation_id', conv.conversation_id)
-            .neq('user_id', user.id)
-            .single();
-
-          if (otherParticipant?.user_id === recipientProfile.id) {
-            toast({
-              title: "Chat exists",
-              description: "A conversation with this user already exists",
-              variant: "destructive",
-            });
-            setIsCreating(false);
-            setRecipientUsername("");
-            return;
-          }
-        }
-      }
-
       // Create the conversation
       const { data: conversation, error } = await supabase
         .from('conversations')
@@ -93,35 +65,45 @@ export const ConversationList = ({
 
       if (error) throw error;
 
-      // Add both users as participants
-      await supabase
-        .from('conversation_participants')
-        .insert([
-          {
-            conversation_id: conversation.id,
-            user_id: user.id
-          }
-        ]);
+      try {
+        // Add both users as participants
+        await supabase
+          .from('conversation_participants')
+          .insert([
+            {
+              conversation_id: conversation.id,
+              user_id: user.id
+            },
+            {
+              conversation_id: conversation.id,
+              user_id: recipientProfile.id
+            }
+          ]);
 
-      const { error: participantError } = await supabase
-        .from('conversation_participants')
-        .insert([
-          {
-            conversation_id: conversation.id,
-            user_id: recipientProfile.id
-          }
-        ]);
-
-      if (participantError) throw participantError;
-
-      setRecipientUsername("");
-      setIsCreating(false);
-      onNewConversation();
-      
-      toast({
-        title: "Success",
-        description: "Chat created successfully",
-      });
+        setRecipientUsername("");
+        setIsCreating(false);
+        onNewConversation();
+        
+        toast({
+          title: "Success",
+          description: "Chat created successfully",
+        });
+      } catch (error: any) {
+        if (error?.message?.includes('unique constraint')) {
+          toast({
+            title: "Chat exists",
+            description: "A conversation with this user already exists",
+            variant: "destructive",
+          });
+          // Clean up the conversation we just created since we couldn't add participants
+          await supabase
+            .from('conversations')
+            .delete()
+            .eq('id', conversation.id);
+        } else {
+          throw error;
+        }
+      }
     } catch (error) {
       console.error('Error creating conversation:', error);
       toast({
