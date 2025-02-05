@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LogOut, User, Mail, Lock } from "lucide-react";
+import { LogOut, User, Mail, Lock, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -17,8 +17,9 @@ const SettingsScreen = () => {
   const [newEmail, setNewEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
 
-  const { data: profile } = useQuery({
+  const { data: profile, refetch: refetchProfile } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -79,6 +80,29 @@ const SettingsScreen = () => {
     }
   };
 
+  const handleUpdatePhoneNumber = async () => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ phone_number: phoneNumber })
+        .eq('id', profile.id);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Phone number updated",
+        description: "Your phone number has been updated successfully.",
+      });
+      refetchProfile();
+    } catch (error) {
+      toast({
+        title: "Error updating phone number",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -100,6 +124,7 @@ const SettingsScreen = () => {
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Settings</h1>
 
+      {/* Account Information Section */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -113,6 +138,10 @@ const SettingsScreen = () => {
             <p className="font-medium">{profile?.email}</p>
           </div>
           <div className="space-y-1">
+            <Label className="text-muted-foreground">Phone Number</Label>
+            <p className="font-medium">{profile?.phone_number || 'Not set'}</p>
+          </div>
+          <div className="space-y-1">
             <Label className="text-muted-foreground">Member since</Label>
             <p className="font-medium">
               {profile?.created_at 
@@ -123,6 +152,7 @@ const SettingsScreen = () => {
         </CardContent>
       </Card>
 
+      {/* Email Update Section */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -150,6 +180,7 @@ const SettingsScreen = () => {
         </CardContent>
       </Card>
 
+      {/* Password Update Section */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -187,6 +218,35 @@ const SettingsScreen = () => {
         </CardContent>
       </Card>
 
+      {/* Phone Number Update Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Phone className="h-5 w-5" />
+            Update Phone Number
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="phoneNumber">Phone Number</Label>
+            <Input
+              id="phoneNumber"
+              type="tel"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              placeholder="Enter phone number"
+            />
+          </div>
+          <Button 
+            onClick={handleUpdatePhoneNumber}
+            disabled={!phoneNumber || phoneNumber === profile?.phone_number}
+          >
+            Update Phone Number
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Preferences Section */}
       <Card>
         <CardHeader>
           <CardTitle>Preferences</CardTitle>
@@ -203,6 +263,7 @@ const SettingsScreen = () => {
         </CardContent>
       </Card>
 
+      {/* Logout Section */}
       <Card>
         <CardContent className="pt-6">
           <Button 
