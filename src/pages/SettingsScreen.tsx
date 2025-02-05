@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { LogoutSection } from "@/components/settings/LogoutSection";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const SettingsScreen = () => {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ const SettingsScreen = () => {
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id)
-        .maybeSingle();
+        .limit(1); // Add limit to ensure we only get one role
       
       if (error) {
         console.error('Error fetching user role:', error);
@@ -34,7 +35,7 @@ const SettingsScreen = () => {
       }
 
       // If no role exists yet, create default 'user' role
-      if (!data) {
+      if (!data || data.length === 0) {
         const { data: newRole, error: insertError } = await supabase
           .from('user_roles')
           .insert([{ user_id: user.id, role: 'user' }])
@@ -48,7 +49,7 @@ const SettingsScreen = () => {
         return newRole?.role;
       }
 
-      return data?.role;
+      return data[0]?.role;
     }
   });
 
@@ -84,28 +85,30 @@ const SettingsScreen = () => {
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Settings</h1>
 
-      <div className="space-y-3">
-        {settingsCategories.map((category) => (
-          <Card
-            key={category.title}
-            className="cursor-pointer hover:bg-accent/50 transition-colors"
-            onClick={() => navigate(category.path)}
-          >
-            <CardContent className="flex items-center p-4">
-              <category.icon className="h-5 w-5 mr-3 text-muted-foreground" />
-              <div className="flex-1">
-                <h3 className="font-medium">{category.title}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {category.description}
-                </p>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <ScrollArea className="h-[calc(100vh-12rem)]">
+        <div className="space-y-3 pr-4">
+          {settingsCategories.map((category) => (
+            <Card
+              key={category.title}
+              className="cursor-pointer hover:bg-accent/50 transition-colors"
+              onClick={() => navigate(category.path)}
+            >
+              <CardContent className="flex items-center p-4">
+                <category.icon className="h-5 w-5 mr-3 text-muted-foreground" />
+                <div className="flex-1">
+                  <h3 className="font-medium">{category.title}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {category.description}
+                  </p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
-      <LogoutSection />
+        <LogoutSection />
+      </ScrollArea>
     </div>
   );
 };
