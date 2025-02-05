@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -187,7 +186,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   }, [onMapInitialized]);
 
   return (
-    <div className="relative w-full h-[70vh]">
+    <div className="relative w-full h-full">
       <div ref={mapContainer} className="absolute inset-0" />
       <div className="absolute top-4 left-4 z-10">
         <Button

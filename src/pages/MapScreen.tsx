@@ -120,43 +120,47 @@ const MapScreen = () => {
   };
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Location</h1>
+    <div className="flex flex-col h-[calc(100vh-4rem)]">
+      <h1 className="text-2xl font-bold mb-4">Location</h1>
       
-      <LocationSearch 
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        onSearch={handleSearch}
-      />
+      <div className="relative flex-1">
+        <div className="absolute inset-x-0 top-4 z-10 px-4">
+          <LocationSearch 
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            onSearch={handleSearch}
+          />
+        </div>
 
-      <Card className="w-full overflow-hidden">
-        <MapContainer onMapInitialized={handleMapInitialized} />
-        <VehicleMarkers map={map} />
-        <style>{`
-          .custom-map-control {
-            width: 29px;
-            height: 29px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            border: none;
-            background: white;
-          }
-          .custom-map-control:hover {
-            background: #f3f4f6;
-          }
-          .lucide-navigation-2 {
-            width: 16px;
-            height: 16px;
-            display: inline-block;
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 7 19-7-4-7 4 7-19z"/></svg>');
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-          }
-        `}</style>
-      </Card>
+        <Card className="w-full h-full overflow-hidden">
+          <MapContainer onMapInitialized={handleMapInitialized} />
+          <VehicleMarkers map={map} />
+          <style>{`
+            .custom-map-control {
+              width: 29px;
+              height: 29px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+              border: none;
+              background: white;
+            }
+            .custom-map-control:hover {
+              background: #f3f4f6;
+            }
+            .lucide-navigation-2 {
+              width: 16px;
+              height: 16px;
+              display: inline-block;
+              background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 7 19-7-4-7 4 7-19z"/></svg>');
+              background-size: contain;
+              background-repeat: no-repeat;
+              background-position: center;
+            }
+          `}</style>
+        </Card>
+      </div>
     </div>
   );
 };
