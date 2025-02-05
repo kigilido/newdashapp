@@ -112,7 +112,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
 
     // Cleanup
     return () => {
-      if (map.current && map.current.getStyle()) {
+      if (map.current) {
         try {
           map.current.remove();
         } catch (error) {
