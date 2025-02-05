@@ -154,7 +154,7 @@ export const useConversationState = () => {
         .from('messages')
         .insert([{
           content,
-          conversation_id: selectedConversion,
+          conversation_id: selectedConversation,
           sender_id: user.id
         }]);
 
