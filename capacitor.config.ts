@@ -7,13 +7,15 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   server: {
     url: 'https://20393405-a36c-4480-a1f2-164bed9c1459.lovableproject.com?forceHideBadge=true',
-    cleartext: true
+    cleartext: true,
+    iosScheme: 'https'
   },
   ios: {
     contentInset: 'never',
     allowsLinkPreview: false,
     scrollEnabled: false,
-    limitsNavigationsToAppBoundDomains: true
+    limitsNavigationsToAppBoundDomains: true,
+    backgroundColor: '#ffffff'
   }
 };
 
