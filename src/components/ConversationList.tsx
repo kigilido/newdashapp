@@ -36,19 +36,48 @@ export const ConversationList = ({
       if (!user) return;
 
       // First, get the recipient user from profiles by username
-      const { data: recipientProfile, error: profileError } = await supabase
+      const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('id, username')
-        .eq('username', recipientUsername)
-        .single();
+        .eq('username', recipientUsername);
 
-      if (profileError || !recipientProfile) {
+      if (profileError || !profiles || profiles.length === 0) {
         toast({
           title: "Error",
           description: "User not found",
           variant: "destructive",
         });
         return;
+      }
+
+      const recipientProfile = profiles[0];
+
+      // Check if a conversation already exists between these users
+      const { data: existingConversations } = await supabase
+        .from('conversation_participants')
+        .select('conversation_id')
+        .eq('user_id', user.id);
+
+      if (existingConversations) {
+        for (const conv of existingConversations) {
+          const { data: otherParticipant } = await supabase
+            .from('conversation_participants')
+            .select('user_id')
+            .eq('conversation_id', conv.conversation_id)
+            .neq('user_id', user.id)
+            .single();
+
+          if (otherParticipant?.user_id === recipientProfile.id) {
+            toast({
+              title: "Chat exists",
+              description: "A conversation with this user already exists",
+              variant: "destructive",
+            });
+            setIsCreating(false);
+            setRecipientUsername("");
+            return;
+          }
+        }
       }
 
       // Create the conversation
@@ -65,20 +94,25 @@ export const ConversationList = ({
       if (error) throw error;
 
       // Add both users as participants
-      const { error: participantsError } = await supabase
+      await supabase
         .from('conversation_participants')
         .insert([
           {
             conversation_id: conversation.id,
             user_id: user.id
-          },
+          }
+        ]);
+
+      const { error: participantError } = await supabase
+        .from('conversation_participants')
+        .insert([
           {
             conversation_id: conversation.id,
             user_id: recipientProfile.id
           }
         ]);
 
-      if (participantsError) throw participantsError;
+      if (participantError) throw participantError;
 
       setRecipientUsername("");
       setIsCreating(false);
