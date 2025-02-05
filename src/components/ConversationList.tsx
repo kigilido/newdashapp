@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,8 +26,7 @@ export const ConversationList = ({
   onSelect,
   onNewConversation,
 }: ConversationListProps) => {
-  const [newTitle, setNewTitle] = useState("");
-  const [recipientEmail, setRecipientEmail] = useState("");
+  const [recipientUsername, setRecipientUsername] = useState("");
   const { toast } = useToast();
   const [isCreating, setIsCreating] = useState(false);
 
@@ -35,17 +35,17 @@ export const ConversationList = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // First, get the recipient user from profiles
+      // First, get the recipient user from profiles by username
       const { data: recipientProfile, error: profileError } = await supabase
         .from('profiles')
-        .select('id')
-        .eq('email', recipientEmail)
+        .select('id, username')
+        .eq('username', recipientUsername)
         .single();
 
       if (profileError || !recipientProfile) {
         toast({
           title: "Error",
-          description: "Recipient user not found",
+          description: "User not found",
           variant: "destructive",
         });
         return;
@@ -55,7 +55,7 @@ export const ConversationList = ({
       const { data: conversation, error } = await supabase
         .from('conversations')
         .insert([{
-          title: newTitle || 'New Chat',
+          title: `Chat with ${recipientProfile.username}`,
           type: 'direct',
           creator_id: user.id
         }])
@@ -80,8 +80,7 @@ export const ConversationList = ({
 
       if (participantsError) throw participantsError;
 
-      setNewTitle("");
-      setRecipientEmail("");
+      setRecipientUsername("");
       setIsCreating(false);
       onNewConversation();
       
@@ -105,24 +104,16 @@ export const ConversationList = ({
         {isCreating ? (
           <div className="flex flex-col gap-2 w-full">
             <Input
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              placeholder="Chat name..."
-              className="flex-1"
-            />
-            <Input
-              value={recipientEmail}
-              onChange={(e) => setRecipientEmail(e.target.value)}
-              placeholder="Recipient email..."
-              type="email"
+              value={recipientUsername}
+              onChange={(e) => setRecipientUsername(e.target.value)}
+              placeholder="Enter username..."
               className="flex-1"
             />
             <div className="flex gap-2">
               <Button onClick={handleCreateConversation} className="flex-1">Create</Button>
               <Button variant="ghost" onClick={() => {
                 setIsCreating(false);
-                setNewTitle("");
-                setRecipientEmail("");
+                setRecipientUsername("");
               }}>Cancel</Button>
             </div>
           </div>
