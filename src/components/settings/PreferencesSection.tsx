@@ -2,7 +2,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -74,12 +73,18 @@ export const PreferencesSection = () => {
     if (!themePreference) return;
 
     const root = document.documentElement;
+    const setTheme = (isDark: boolean) => {
+      if (isDark) {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
+    };
+
     if (themePreference.theme === "auto") {
-      root.classList.remove('light', 'dark');
-      root.classList.add(prefersDark.matches ? 'dark' : 'light');
+      setTheme(prefersDark.matches);
     } else {
-      root.classList.remove('light', 'dark');
-      root.classList.add(themePreference.theme);
+      setTheme(themePreference.theme === "dark");
     }
   }, [themePreference, prefersDark.matches]);
 
@@ -87,8 +92,12 @@ export const PreferencesSection = () => {
   useEffect(() => {
     const handleChange = (e: MediaQueryListEvent) => {
       if (themePreference?.theme === "auto") {
-        document.documentElement.classList.remove('light', 'dark');
-        document.documentElement.classList.add(e.matches ? 'dark' : 'light');
+        const root = document.documentElement;
+        if (e.matches) {
+          root.classList.add('dark');
+        } else {
+          root.classList.remove('dark');
+        }
       }
     };
 
@@ -134,8 +143,8 @@ export const PreferencesSection = () => {
                 key={value}
                 className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all ${
                   themePreference?.theme === value
-                    ? 'border-violet-500 bg-violet-50 text-violet-900'
-                    : 'border-border hover:border-violet-300 hover:bg-violet-50/50'
+                    ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/50 text-violet-900 dark:text-violet-100'
+                    : 'border-border hover:border-violet-300 hover:bg-violet-50/50 dark:hover:bg-violet-900/20'
                 }`}
                 onClick={() => updateTheme(value)}
               >
