@@ -4,13 +4,32 @@ import {
   UserCircle, 
   Settings as SettingsIcon, 
   Shield,
-  ChevronRight 
+  ChevronRight,
+  Settings2
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { LogoutSection } from "@/components/settings/LogoutSection";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const SettingsScreen = () => {
   const navigate = useNavigate();
+
+  const { data: userRole } = useQuery({
+    queryKey: ['userRole'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+      
+      return data?.role;
+    }
+  });
 
   const settingsCategories = [
     {
@@ -31,6 +50,13 @@ const SettingsScreen = () => {
       path: "/app/settings/privacy",
       description: "Control your privacy and security settings"
     },
+    // Only show admin settings if user has admin role
+    ...(userRole === 'admin' ? [{
+      title: "Admin Settings",
+      icon: Settings2,
+      path: "/app/settings/admin",
+      description: "Manage application settings and configurations"
+    }] : [])
   ];
 
   return (
