@@ -97,9 +97,10 @@ export const useConversationState = () => {
             .eq('id', otherParticipant.user_id)
             .single();
 
-          setSelectedConversationTitle(profile?.username || "Chat");
+          // Set just the username without "Chat with" prefix
+          setSelectedConversationTitle(profile?.username || "");
         } else {
-          setSelectedConversationTitle("Chat");
+          setSelectedConversationTitle("");
         }
       }
 
