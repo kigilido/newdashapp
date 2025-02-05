@@ -34,8 +34,8 @@ const ScanScreen = () => {
         quality: 90,
         allowEditing: false,
         resultType: CameraResultType.DataUrl,
-        source: CameraSource.CAMERA,
-        direction: CameraDirection.BACK
+        source: CameraSource.Camera,
+        direction: CameraDirection.Rear
       });
 
       if (image.dataUrl) {

@@ -13,6 +13,9 @@ import ChatScreen from "./pages/ChatScreen";
 import ScanScreen from "./pages/ScanScreen";
 import MapScreen from "./pages/MapScreen";
 import SettingsScreen from "./pages/SettingsScreen";
+import AccountSettingsScreen from "./pages/settings/AccountSettingsScreen";
+import GeneralSettingsScreen from "./pages/settings/GeneralSettingsScreen";
+import PrivacySettingsScreen from "./pages/settings/PrivacySettingsScreen";
 import AuthScreen from "./components/AuthScreen";
 
 const queryClient = new QueryClient();
@@ -47,6 +50,9 @@ const App = () => {
               <Route path="scan" element={<ScanScreen />} />
               <Route path="map" element={<MapScreen />} />
               <Route path="settings" element={<SettingsScreen />} />
+              <Route path="settings/account" element={<AccountSettingsScreen />} />
+              <Route path="settings/general" element={<GeneralSettingsScreen />} />
+              <Route path="settings/privacy" element={<PrivacySettingsScreen />} />
               <Route index element={<Navigate to="/app/chat" replace />} />
             </Route>
             <Route path="*" element={<Navigate to="/app/chat" replace />} />

@@ -1,55 +1,63 @@
 
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { AccountInfoSection } from "@/components/settings/AccountInfoSection";
-import { EmailSection } from "@/components/settings/EmailSection";
-import { PasswordSection } from "@/components/settings/PasswordSection";
-import { PhoneSection } from "@/components/settings/PhoneSection";
-import { PreferencesSection } from "@/components/settings/PreferencesSection";
+import { useNavigate } from "react-router-dom";
+import { 
+  UserCircle, 
+  Settings as SettingsIcon, 
+  Shield,
+  ChevronRight 
+} from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { LogoutSection } from "@/components/settings/LogoutSection";
 
 const SettingsScreen = () => {
-  const { data: profile, refetch: refetchProfile } = useQuery({
-    queryKey: ['profile'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
-      
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      return {
-        email: user.email,
-        ...profile
-      };
+  const navigate = useNavigate();
+
+  const settingsCategories = [
+    {
+      title: "Account Information",
+      icon: UserCircle,
+      path: "/app/settings/account",
+      description: "Manage your account details, email, and password"
     },
-  });
+    {
+      title: "General",
+      icon: SettingsIcon,
+      path: "/app/settings/general",
+      description: "App preferences and customization"
+    },
+    {
+      title: "Privacy",
+      icon: Shield,
+      path: "/app/settings/privacy",
+      description: "Control your privacy and security settings"
+    },
+  ];
 
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Settings</h1>
 
-      <AccountInfoSection 
-        email={profile?.email}
-        phoneNumber={profile?.phone_number}
-        createdAt={profile?.created_at}
-      />
+      <div className="space-y-3">
+        {settingsCategories.map((category) => (
+          <Card
+            key={category.title}
+            className="cursor-pointer hover:bg-accent/50 transition-colors"
+            onClick={() => navigate(category.path)}
+          >
+            <CardContent className="flex items-center p-4">
+              <category.icon className="h-5 w-5 mr-3 text-muted-foreground" />
+              <div className="flex-1">
+                <h3 className="font-medium">{category.title}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {category.description}
+                </p>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-      <EmailSection currentEmail={profile?.email} />
-      
-      <PasswordSection />
-      
-      <PhoneSection 
-        currentPhoneNumber={profile?.phone_number}
-        userId={profile?.id}
-        onUpdate={refetchProfile}
-      />
-      
-      <PreferencesSection />
-      
       <LogoutSection />
     </div>
   );
