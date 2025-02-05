@@ -10,7 +10,10 @@ const config: CapacitorConfig = {
     cleartext: true
   },
   ios: {
-    contentInset: 'always'
+    contentInset: 'never',
+    allowsLinkPreview: false,
+    scrollEnabled: false,
+    limitsNavigationsToAppBoundDomains: true
   }
 };
 
