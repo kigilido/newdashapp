@@ -36,13 +36,19 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a license plate OCR system. Extract the license plate number AND all visible text from the image. Return both the license plate number and the raw text found. If no license plate is visible, return "NO_PLATE_FOUND" for the license plate.'
+            content: 'You are a license plate OCR system. Extract the license plate number AND all visible text from the image. Return both the license plate number and the raw text found. If no license plate is visible, return "NO_PLATE_FOUND" for the license plate number.'
           },
           {
             role: 'user',
             content: [
-              { type: 'text', text: 'What is the license plate number and what text do you see in this image?' },
-              { type: 'image_url', url: image }
+              { 
+                type: 'text', 
+                text: 'Extract the license plate number and all text visible in this image.' 
+              },
+              { 
+                type: 'image_url', 
+                image_url: { url: image }
+              }
             ]
           }
         ],
