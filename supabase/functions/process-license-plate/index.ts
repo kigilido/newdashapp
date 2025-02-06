@@ -1,7 +1,7 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createWorker } from 'https://cdn.jsdelivr.net/npm/tesseract.js@5.0.3/dist/tesseract.esm.min.js';
+import { createWorker } from 'https://cdn.skypack.dev/tesseract.js@4.1.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,43 +19,79 @@ serve(async (req) => {
       throw new Error('No image provided');
     }
 
-    console.log('Starting Tesseract worker...');
-    const worker = await createWorker({
-      logger: m => console.log(m),
-      errorHandler: err => console.error('Tesseract Error:', err)
-    });
-
-    console.log('Loading language...');
-    await worker.loadLanguage('eng');
-    await worker.initialize('eng');
+    console.log('Starting OCR process...');
     
-    console.log('Setting parameters...');
-    await worker.setParameters({
-      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-    });
+    // Convert base64 to binary if it's a base64 string
+    let imageData = image;
+    if (image.startsWith('data:image')) {
+      const base64Data = image.split(',')[1];
+      const binaryString = atob(base64Data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      imageData = bytes;
+    }
 
-    console.log('Starting recognition...');
-    const { data: { text } } = await worker.recognize(image);
-    console.log('Recognition complete. Raw text:', text);
+    console.log('Creating Tesseract worker...');
+    const worker = await createWorker();
     
-    await worker.terminate();
+    try {
+      console.log('Loading language...');
+      await worker.loadLanguage('eng');
+      await worker.initialize('eng');
+      
+      console.log('Setting parameters...');
+      await worker.setParameters({
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+      });
 
-    // Clean and process the text
-    const cleanText = text.replace(/\s+/g, '').toUpperCase();
-    const licensePlateMatch = cleanText.match(/[A-Z0-9]{5,8}/);
-    const licensePlate = licensePlateMatch ? licensePlateMatch[0] : 'NO_PLATE_FOUND';
-    
-    console.log('Processed license plate:', licensePlate);
+      console.log('Starting recognition...');
+      const { data: { text } } = await worker.recognize(imageData);
+      console.log('Raw OCR result:', text);
 
-    return new Response(
-      JSON.stringify({ licensePlate, rawText: text.trim() }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+      // Clean and process the text
+      const cleanText = text.replace(/[^A-Z0-9]/g, '').toUpperCase();
+      console.log('Cleaned text:', cleanText);
+      
+      const licensePlateMatch = cleanText.match(/[A-Z0-9]{5,8}/);
+      const licensePlate = licensePlateMatch ? licensePlateMatch[0] : 'NO_PLATE_FOUND';
+      
+      console.log('Extracted license plate:', licensePlate);
+
+      await worker.terminate();
+
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          licensePlate, 
+          rawText: text.trim() 
+        }),
+        { 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
+
+    } finally {
+      if (worker) {
+        try {
+          await worker.terminate();
+        } catch (error) {
+          console.error('Error terminating worker:', error);
+        }
+      }
+    }
 
   } catch (error) {
-    console.error('Error processing license plate:', error);
+    console.error('Error in license plate processing:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        success: false, 
+        error: error.message || 'Failed to process image'
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500 
