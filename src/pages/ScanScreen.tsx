@@ -14,6 +14,7 @@ const ScanScreen = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [detectedPlate, setDetectedPlate] = useState<string | null>(null);
+  const [rawText, setRawText] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -128,6 +129,7 @@ const ScanScreen = () => {
       });
 
       if (error) throw error;
+      setRawText(data.rawText); // Store the raw text
       return data.licensePlate;
     } catch (error) {
       console.error('OCR error:', error);
@@ -154,6 +156,7 @@ const ScanScreen = () => {
         setPhoto(image.dataUrl);
         setIsProcessing(true);
         setDetectedPlate(null);
+        setRawText(null);
         
         const licensePlate = await performOCR(image.dataUrl);
         
@@ -183,6 +186,7 @@ const ScanScreen = () => {
   const handleRetake = () => {
     setPhoto(null);
     setDetectedPlate(null);
+    setRawText(null);
     setIsProcessing(false);
   };
 
@@ -200,6 +204,7 @@ const ScanScreen = () => {
             isProcessing={isProcessing}
             licensePlate={detectedPlate}
             onConfirm={handleConfirmPlate}
+            rawText={rawText}
           />
         ) : (
           <CameraButton 
