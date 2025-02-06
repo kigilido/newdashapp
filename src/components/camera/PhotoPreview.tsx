@@ -1,13 +1,22 @@
 
 import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 interface PhotoPreviewProps {
   photoUrl: string;
   onRetake: () => void;
   isProcessing: boolean;
+  licensePlate?: string | null;
+  onConfirm?: () => void;
 }
 
-export const PhotoPreview = ({ photoUrl, onRetake, isProcessing }: PhotoPreviewProps) => {
+export const PhotoPreview = ({ 
+  photoUrl, 
+  onRetake, 
+  isProcessing, 
+  licensePlate,
+  onConfirm 
+}: PhotoPreviewProps) => {
   return (
     <div className="space-y-4 w-full flex flex-col items-center">
       <img 
@@ -15,13 +24,35 @@ export const PhotoPreview = ({ photoUrl, onRetake, isProcessing }: PhotoPreviewP
         alt="Captured" 
         className="w-full max-w-md rounded-lg shadow-lg"
       />
-      <Button 
-        onClick={onRetake}
-        variant="outline"
-        disabled={isProcessing}
-      >
-        Take Another Photo
-      </Button>
+      
+      {isProcessing ? (
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <p>Processing image...</p>
+        </div>
+      ) : licensePlate ? (
+        <div className="space-y-4 text-center">
+          <div className="text-lg font-semibold">
+            Detected License Plate: <span className="text-primary">{licensePlate}</span>
+          </div>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={onConfirm} variant="default">
+              Confirm & Continue
+            </Button>
+            <Button onClick={onRetake} variant="outline">
+              Take Another Photo
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button 
+          onClick={onRetake}
+          variant="outline"
+          disabled={isProcessing}
+        >
+          Take Another Photo
+        </Button>
+      )}
     </div>
   );
 };

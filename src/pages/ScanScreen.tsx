@@ -13,6 +13,7 @@ const ScanScreen = () => {
   const [photo, setPhoto] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [detectedPlate, setDetectedPlate] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -83,18 +84,12 @@ const ScanScreen = () => {
     }
   };
 
-  const processLicensePlate = async (licensePlate: string) => {
-    if (licensePlate === 'NO_PLATE_FOUND') {
-      toast({
-        title: "No License Plate Found",
-        description: "Please take another photo where the license plate is clearly visible.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleConfirmPlate = async () => {
+    if (!detectedPlate) return;
+    
+    setIsProcessing(true);
     try {
-      const profile = await findUserByLicensePlate(licensePlate);
+      const profile = await findUserByLicensePlate(detectedPlate);
       
       if (!profile) {
         toast({
@@ -158,19 +153,37 @@ const ScanScreen = () => {
       if (image.dataUrl) {
         setPhoto(image.dataUrl);
         setIsProcessing(true);
+        setDetectedPlate(null);
         
         const licensePlate = await performOCR(image.dataUrl);
-        await processLicensePlate(licensePlate);
+        
+        if (licensePlate === 'NO_PLATE_FOUND') {
+          toast({
+            title: "No License Plate Found",
+            description: "Please take another photo where the license plate is clearly visible.",
+            variant: "destructive",
+          });
+          setPhoto(null);
+        } else {
+          setDetectedPlate(licensePlate);
+        }
       }
     } catch (error) {
       console.error('Camera error:', error);
-      setIsProcessing(false);
       toast({
         title: "Camera Error",
         description: "There was an error accessing the camera. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsProcessing(false);
     }
+  };
+
+  const handleRetake = () => {
+    setPhoto(null);
+    setDetectedPlate(null);
+    setIsProcessing(false);
   };
 
   return (
@@ -183,11 +196,10 @@ const ScanScreen = () => {
         {photo ? (
           <PhotoPreview 
             photoUrl={photo}
-            onRetake={() => {
-              setPhoto(null);
-              setIsProcessing(false);
-            }}
+            onRetake={handleRetake}
             isProcessing={isProcessing}
+            licensePlate={detectedPlate}
+            onConfirm={handleConfirmPlate}
           />
         ) : (
           <CameraButton 
