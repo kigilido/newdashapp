@@ -36,12 +36,12 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a license plate OCR system. Extract ONLY the license plate number from the image. Return ONLY the plate number, nothing else. If no license plate is visible, return "NO_PLATE_FOUND".'
+            content: 'You are a license plate OCR system. Extract the license plate number AND all visible text from the image. Return both the license plate number and the raw text found. If no license plate is visible, return "NO_PLATE_FOUND" for the license plate.'
           },
           {
             role: 'user',
             content: [
-              { type: 'text', text: 'What is the license plate number in this image?' },
+              { type: 'text', text: 'What is the license plate number and what text do you see in this image?' },
               { type: 'image_url', url: image }
             ]
           }
@@ -52,10 +52,13 @@ serve(async (req) => {
     const data = await response.json();
     console.log('OCR response:', data);
 
-    const licensePlate = data.choices[0].message.content.trim();
+    const rawText = data.choices[0].message.content;
+    // Try to extract license plate from the response
+    const licensePlate = rawText.includes('NO_PLATE_FOUND') ? 'NO_PLATE_FOUND' : 
+                        rawText.match(/[A-Z0-9]{5,8}/)?.[0] || 'NO_PLATE_FOUND';
     
     return new Response(
-      JSON.stringify({ licensePlate }),
+      JSON.stringify({ licensePlate, rawText }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

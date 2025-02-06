@@ -129,11 +129,21 @@ const ScanScreen = () => {
       });
 
       if (error) throw error;
-      setRawText(data.rawText); // Store the raw text
+      
+      if (!data.licensePlate) {
+        throw new Error('Failed to process image');
+      }
+
+      setRawText(data.rawText);
       return data.licensePlate;
     } catch (error) {
       console.error('OCR error:', error);
-      throw new Error('Failed to process image');
+      toast({
+        title: "Processing Error",
+        description: "Failed to process the image. Please try again.",
+        variant: "destructive",
+      });
+      throw error;
     }
   };
 
@@ -152,12 +162,16 @@ const ScanScreen = () => {
         direction: CameraDirection.Rear
       });
 
-      if (image.dataUrl) {
-        setPhoto(image.dataUrl);
-        setIsProcessing(true);
-        setDetectedPlate(null);
-        setRawText(null);
-        
+      if (!image.dataUrl) {
+        throw new Error('No image data received from camera');
+      }
+
+      setPhoto(image.dataUrl);
+      setIsProcessing(true);
+      setDetectedPlate(null);
+      setRawText(null);
+      
+      try {
         const licensePlate = await performOCR(image.dataUrl);
         
         if (licensePlate === 'NO_PLATE_FOUND') {
@@ -170,6 +184,9 @@ const ScanScreen = () => {
         } else {
           setDetectedPlate(licensePlate);
         }
+      } catch (error) {
+        console.error('OCR processing error:', error);
+        setPhoto(null);
       }
     } catch (error) {
       console.error('Camera error:', error);
