@@ -1,3 +1,4 @@
+
 import { Camera, CameraResultType, CameraDirection, CameraSource } from '@capacitor/camera';
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
@@ -54,7 +55,6 @@ const ScanScreen = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Create new conversation
       const { data: conversation, error: convError } = await supabase
         .from('conversations')
         .insert([{
@@ -67,7 +67,6 @@ const ScanScreen = () => {
 
       if (convError) throw convError;
 
-      // Add both users as participants
       const { error: partError } = await supabase
         .from('conversation_participants')
         .insert([
@@ -85,7 +84,15 @@ const ScanScreen = () => {
   };
 
   const processLicensePlate = async (licensePlate: string) => {
-    setIsProcessing(true);
+    if (licensePlate === 'NO_PLATE_FOUND') {
+      toast({
+        title: "No License Plate Found",
+        description: "Please take another photo where the license plate is clearly visible.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const profile = await findUserByLicensePlate(licensePlate);
       
@@ -105,7 +112,6 @@ const ScanScreen = () => {
         description: "Vehicle found! Starting chat...",
       });
 
-      // Navigate to chat with the new conversation
       navigate(`/app/chat?conversation=${conversationId}`);
 
     } catch (error) {
@@ -117,6 +123,20 @@ const ScanScreen = () => {
       });
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const performOCR = async (imageDataUrl: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('process-license-plate', {
+        body: { image: imageDataUrl }
+      });
+
+      if (error) throw error;
+      return data.licensePlate;
+    } catch (error) {
+      console.error('OCR error:', error);
+      throw new Error('Failed to process image');
     }
   };
 
@@ -137,13 +157,14 @@ const ScanScreen = () => {
 
       if (image.dataUrl) {
         setPhoto(image.dataUrl);
-        // TODO: Replace with actual OCR/license plate recognition
-        // For now, we'll use a mock license plate for testing
-        const mockLicensePlate = "ABC123";
-        await processLicensePlate(mockLicensePlate);
+        setIsProcessing(true);
+        
+        const licensePlate = await performOCR(image.dataUrl);
+        await processLicensePlate(licensePlate);
       }
     } catch (error) {
       console.error('Camera error:', error);
+      setIsProcessing(false);
       toast({
         title: "Camera Error",
         description: "There was an error accessing the camera. Please try again.",
@@ -162,7 +183,10 @@ const ScanScreen = () => {
         {photo ? (
           <PhotoPreview 
             photoUrl={photo}
-            onRetake={() => setPhoto(null)}
+            onRetake={() => {
+              setPhoto(null);
+              setIsProcessing(false);
+            }}
             isProcessing={isProcessing}
           />
         ) : (
