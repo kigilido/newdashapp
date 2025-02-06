@@ -128,10 +128,18 @@ const ScanScreen = () => {
         body: { image: imageDataUrl }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
       
-      if (!data.licensePlate) {
-        throw new Error('Failed to process image');
+      if (!data) {
+        throw new Error('No data returned from OCR');
+      }
+
+      if (data.error) {
+        console.error('OCR processing error:', data.error);
+        throw new Error(data.error);
       }
 
       setRawText(data.rawText);
@@ -140,7 +148,7 @@ const ScanScreen = () => {
       console.error('OCR error:', error);
       toast({
         title: "Processing Error",
-        description: "Failed to process the image. Please try again.",
+        description: error.message || "Failed to process the image. Please try again.",
         variant: "destructive",
       });
       throw error;
