@@ -1,7 +1,7 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createWorker } from 'https://esm.sh/tesseract.js@5.0.5';
+import { createWorker } from 'https://cdn.jsdelivr.net/npm/tesseract.js@5.0.3/dist/tesseract.esm.min.js';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,28 +19,36 @@ serve(async (req) => {
       throw new Error('No image provided');
     }
 
-    console.log('Processing license plate image with Tesseract...');
+    console.log('Starting Tesseract worker...');
+    const worker = await createWorker({
+      logger: m => console.log(m),
+      errorHandler: err => console.error('Tesseract Error:', err)
+    });
 
-    const worker = await createWorker();
+    console.log('Loading language...');
     await worker.loadLanguage('eng');
     await worker.initialize('eng');
     
-    // Configure Tesseract to look for text that might be a license plate
+    console.log('Setting parameters...');
     await worker.setParameters({
       tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
     });
 
-    const result = await worker.recognize(image);
-    console.log('Tesseract result:', result);
+    console.log('Starting recognition...');
+    const { data: { text } } = await worker.recognize(image);
+    console.log('Recognition complete. Raw text:', text);
     
     await worker.terminate();
 
-    const rawText = result.data.text.trim();
-    // Try to extract license plate from the text (looking for patterns that match license plates)
-    const licensePlate = rawText.match(/[A-Z0-9]{5,8}/)?.[0] || 'NO_PLATE_FOUND';
+    // Clean and process the text
+    const cleanText = text.replace(/\s+/g, '').toUpperCase();
+    const licensePlateMatch = cleanText.match(/[A-Z0-9]{5,8}/);
+    const licensePlate = licensePlateMatch ? licensePlateMatch[0] : 'NO_PLATE_FOUND';
     
+    console.log('Processed license plate:', licensePlate);
+
     return new Response(
-      JSON.stringify({ licensePlate, rawText }),
+      JSON.stringify({ licensePlate, rawText: text.trim() }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
