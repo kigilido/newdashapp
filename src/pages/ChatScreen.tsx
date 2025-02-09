@@ -168,7 +168,7 @@ const ChatScreen = () => {
         </div>
       )}
     </div>
-  );
+    );
 };
 
 export default ChatScreen;
