@@ -1,4 +1,5 @@
 
+import { useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -102,7 +103,7 @@ export const ProfileForm = ({
   };
 
   // Set the initial values when isEditing becomes true
-  React.useEffect(() => {
+  useEffect(() => {
     if (isEditing) {
       setUsername(initialUsername || '');
       setLicensePlate(initialLicensePlate || '');
