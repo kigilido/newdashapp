@@ -45,13 +45,14 @@ export const ProfileForm = ({
       const { data: user } = await supabase.auth.getUser();
       if (!user.user?.id) throw new Error('No user found');
 
-      if (username !== initialUsername) {
+      // Only check for duplicate username if it has changed and is not empty
+      if (username !== initialUsername && username.trim() !== '') {
         const { data: existingUsername } = await supabase
           .from('profiles')
           .select('id')
           .eq('username', username)
           .neq('id', user.user.id)
-          .single();
+          .maybeSingle();
 
         if (existingUsername) {
           toast({
@@ -63,13 +64,14 @@ export const ProfileForm = ({
         }
       }
 
-      if (licensePlate !== initialLicensePlate) {
+      // Only check for duplicate license plate if it has changed and is not empty
+      if (licensePlate !== initialLicensePlate && licensePlate.trim() !== '') {
         const { data: existingLicensePlate } = await supabase
           .from('profiles')
           .select('id')
           .eq('license_plate', licensePlate)
           .neq('id', user.user.id)
-          .single();
+          .maybeSingle();
 
         if (existingLicensePlate) {
           toast({
