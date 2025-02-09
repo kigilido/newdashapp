@@ -101,6 +101,14 @@ export const ProfileForm = ({
     }
   };
 
+  // Set the initial values when isEditing becomes true
+  React.useEffect(() => {
+    if (isEditing) {
+      setUsername(initialUsername || '');
+      setLicensePlate(initialLicensePlate || '');
+    }
+  }, [isEditing, initialUsername, initialLicensePlate, setUsername, setLicensePlate]);
+
   return (
     <>
       <div className="space-y-1">
