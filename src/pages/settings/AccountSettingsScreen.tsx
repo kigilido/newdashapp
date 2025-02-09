@@ -36,6 +36,7 @@ const AccountSettingsScreen = () => {
         username={profile?.username}
         licensePlate={profile?.license_plate}
         createdAt={profile?.created_at}
+        avatarUrl={profile?.avatar_url}
       />
 
       <EmailSection currentEmail={profile?.email} />

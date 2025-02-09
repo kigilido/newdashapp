@@ -25,13 +25,14 @@ export const resendVerificationEmail = async (email: string) => {
   }
 };
 
-export const updateProfile = async (userId: string, username: string, licensePlate: string) => {
+export const updateProfile = async (userId: string, username: string, licensePlate: string, avatarUrl?: string) => {
   try {
     const { error } = await supabase
       .from('profiles')
       .update({ 
         username,
-        license_plate: licensePlate 
+        license_plate: licensePlate,
+        ...(avatarUrl ? { avatar_url: avatarUrl } : {})
       })
       .eq('id', userId);
 

@@ -1,13 +1,14 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { User } from "lucide-react";
+import { User, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { updateProfile } from "@/utils/auth";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type AccountInfoSectionProps = {
   email: string | undefined;
@@ -15,6 +16,7 @@ type AccountInfoSectionProps = {
   createdAt: string | undefined;
   username: string | undefined;
   licensePlate: string | undefined;
+  avatarUrl: string | undefined;
 };
 
 export const AccountInfoSection = ({ 
@@ -22,12 +24,76 @@ export const AccountInfoSection = ({
   phoneNumber, 
   createdAt, 
   username: initialUsername,
-  licensePlate: initialLicensePlate 
+  licensePlate: initialLicensePlate,
+  avatarUrl: initialAvatarUrl
 }: AccountInfoSectionProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [username, setUsername] = useState(initialUsername || '');
   const [licensePlate, setLicensePlate] = useState(initialLicensePlate || '');
   const [isLoading, setIsLoading] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl);
+
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setIsLoading(true);
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid file type",
+          description: "Please upload an image file",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please upload an image smaller than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
+
+      const { error: uploadError, data } = await supabase.storage
+        .from('profile_photos')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile_photos')
+        .getPublicUrl(filePath);
+
+      // Update profile with new avatar URL
+      await updateProfile(user.id, username, licensePlate, publicUrl);
+      setAvatarUrl(publicUrl);
+
+      toast({
+        title: "Success",
+        description: "Profile photo updated successfully",
+      });
+    } catch (error: any) {
+      console.error('Error uploading photo:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload photo",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     setIsLoading(true);
@@ -73,7 +139,7 @@ export const AccountInfoSection = ({
         }
       }
 
-      await updateProfile(user.user.id, username, licensePlate);
+      await updateProfile(user.user.id, username, licensePlate, avatarUrl);
       toast({
         title: "Success",
         description: "Profile updated successfully",
@@ -89,6 +155,15 @@ export const AccountInfoSection = ({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (
@@ -111,6 +186,35 @@ export const AccountInfoSection = ({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="flex flex-col items-center gap-4">
+          <Avatar className="h-24 w-24">
+            <AvatarImage src={avatarUrl} />
+            <AvatarFallback className="text-lg">
+              {username ? getInitials(username) : '?'}
+            </AvatarFallback>
+          </Avatar>
+          {isEditing && (
+            <div className="flex items-center gap-2">
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoUpload}
+                disabled={isLoading}
+                className="hidden"
+                id="photo-upload"
+              />
+              <Button
+                variant="outline"
+                onClick={() => document.getElementById('photo-upload')?.click()}
+                disabled={isLoading}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Photo
+              </Button>
+            </div>
+          )}
+        </div>
+
         <div className="space-y-1">
           <Label className="text-muted-foreground">Username</Label>
           {isEditing ? (
