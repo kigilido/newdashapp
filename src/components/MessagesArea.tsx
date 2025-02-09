@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import { MessageBubble } from "./MessageBubble";
@@ -32,18 +33,18 @@ export const MessagesArea = ({ messages, isLoading, onSendMessage }: MessagesAre
     <div className="flex flex-col h-[calc(100vh-12rem)]">
       {isLoading ? (
         <div className="flex items-center justify-center flex-1">
-          <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
         </div>
       ) : (
         <>
-          <ScrollArea className="flex-1 px-4 pb-4">
-            <div className="space-y-4 min-h-full">
+          <ScrollArea className="flex-1 px-4">
+            <div className="space-y-3 min-h-full py-4">
               {messages.map((message) => (
                 <MessageBubble
                   key={message.id}
                   content={message.content}
                   sender_id={message.sender_id}
-                  timestamp={new Date(message.created_at).toLocaleTimeString()}
+                  timestamp={new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 />
               ))}
               <div ref={messagesEndRef} />

@@ -1,3 +1,4 @@
+
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,21 +23,21 @@ export const MessageBubble = ({ content, sender_id, timestamp }: MessageBubblePr
   return (
     <div
       className={cn(
-        "flex flex-col max-w-[80%] space-y-1",
+        "flex flex-col max-w-[70%] space-y-1",
         isSentByMe ? "ml-auto items-end" : "mr-auto items-start"
       )}
     >
       <div
         className={cn(
-          "rounded-2xl px-4 py-2 break-words",
+          "rounded-lg px-3 py-2 break-words shadow-sm",
           isSentByMe
-            ? "bg-gradient-to-r from-violet-500 to-purple-500 text-white"
-            : "bg-white/80 border border-white/20"
+            ? "bg-[#E7FFDB] text-gray-800 rounded-tr-none"
+            : "bg-white text-gray-800 rounded-tl-none"
         )}
       >
-        <p className="text-sm md:text-base leading-relaxed">{content}</p>
+        <p className="text-sm leading-relaxed">{content}</p>
       </div>
-      <span className="text-xs text-muted-foreground px-2">{timestamp}</span>
+      <span className="text-[11px] text-gray-500 px-1">{timestamp}</span>
     </div>
   );
 };
