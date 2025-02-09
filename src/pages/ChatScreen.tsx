@@ -11,12 +11,15 @@ import { useNotifications } from "@/components/chat/NotificationsHandler";
 import { useSubscription } from "@/components/chat/SubscriptionManager";
 import { useConversationState } from "@/components/chat/ConversationStateManager";
 import { ChatEnvironmentToggle } from "@/components/chat/ChatEnvironmentToggle";
+import { useToast } from "@/components/ui/use-toast";
+import { Geolocation } from '@capacitor/geolocation';
 
 const ChatScreen = () => {
   const [showConversations, setShowConversations] = useState(true);
   const [chatEnvironment, setChatEnvironment] = useState<"general" | "contacts">("general");
   const isMobile = useIsMobile();
   const { showNotification } = useNotifications();
+  const { toast } = useToast();
   const {
     messages,
     setMessages,
@@ -37,11 +40,42 @@ const ChatScreen = () => {
       const isAuthenticated = await checkAuth();
       if (isAuthenticated) {
         await loadConversations();
+        await checkLocationPermission();
       }
     };
 
     initialize();
   }, []);
+
+  const checkLocationPermission = async () => {
+    try {
+      const permissionStatus = await Geolocation.checkPermissions();
+      
+      if (permissionStatus.location === 'denied' || permissionStatus.location === 'prompt') {
+        const request = await Geolocation.requestPermissions();
+        
+        if (request.location === 'granted') {
+          toast({
+            title: "Location Access Granted",
+            description: "You can now share your location in chats",
+          });
+        } else {
+          toast({
+            title: "Location Access Required",
+            description: "Please enable location access in your device settings to use location features",
+            variant: "destructive"
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error checking location permission:', error);
+      toast({
+        title: "Permission Error",
+        description: "Unable to check location permissions. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   useEffect(() => {
     if (selectedConversation) {
@@ -168,7 +202,8 @@ const ChatScreen = () => {
         </div>
       )}
     </div>
-    );
+  );
 };
 
 export default ChatScreen;
+
