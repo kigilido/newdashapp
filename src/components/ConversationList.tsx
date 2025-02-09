@@ -3,9 +3,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Avatar, AvatarFallback } from "./ui/avatar";
 
 interface Conversation {
   id: string;
@@ -122,9 +122,18 @@ export const ConversationList = ({
     return title;
   };
 
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 px-4 py-2">
         {isCreating ? (
           <div className="flex flex-col gap-2 w-full">
             <Input
@@ -144,30 +153,50 @@ export const ConversationList = ({
         ) : (
           <Button
             onClick={() => setIsCreating(true)}
-            variant="outline"
-            className="w-full flex items-center gap-2"
+            variant="ghost"
+            className="w-full flex items-center gap-2 hover:bg-gray-100"
           >
             <Plus className="h-4 w-4" />
             New Chat
           </Button>
         )}
       </div>
-      <div className="space-y-2">
-        {conversations.map((conv) => (
-          <Card
-            key={conv.id}
-            className={`p-4 cursor-pointer transition-colors ${
-              selectedId === conv.id
-                ? "bg-violet-50 border-violet-200"
-                : "hover:bg-violet-50/50"
-            }`}
-            onClick={() => onSelect(conv.id)}
-          >
-            <h3 className="font-medium">
-              {getUsername(conv.title)}
-            </h3>
-          </Card>
-        ))}
+      <div className="space-y-[1px] bg-gray-200">
+        {conversations.map((conv) => {
+          const username = getUsername(conv.title);
+          return (
+            <div
+              key={conv.id}
+              className={`flex items-center gap-3 p-3 cursor-pointer transition-colors bg-white hover:bg-gray-50 ${
+                selectedId === conv.id ? "bg-gray-100" : ""
+              }`}
+              onClick={() => onSelect(conv.id)}
+            >
+              <Avatar className="h-12 w-12">
+                <AvatarFallback className="bg-violet-100 text-violet-600">
+                  {getInitials(username)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-baseline">
+                  <h3 className="font-medium text-gray-900 truncate">
+                    {username}
+                  </h3>
+                  <span className="text-xs text-gray-500">
+                    {new Date(conv.created_at).toLocaleTimeString([], { 
+                      hour: '2-digit', 
+                      minute: '2-digit',
+                      hour12: true 
+                    })}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500 truncate">
+                  Click to view conversation
+                </p>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
