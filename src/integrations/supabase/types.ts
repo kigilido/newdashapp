@@ -236,6 +236,41 @@ export type Database = {
           },
         ]
       }
+      phone_contacts: {
+        Row: {
+          contact_name: string | null
+          contact_phone_number: string
+          created_at: string
+          id: string
+          is_app_user: boolean | null
+          user_id: string
+        }
+        Insert: {
+          contact_name?: string | null
+          contact_phone_number: string
+          created_at?: string
+          id?: string
+          is_app_user?: boolean | null
+          user_id: string
+        }
+        Update: {
+          contact_name?: string | null
+          contact_phone_number?: string
+          created_at?: string
+          id?: string
+          is_app_user?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "phone_contacts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -263,6 +298,30 @@ export type Database = {
           phone_number?: string | null
           updated_at?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      secrets: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          value?: string
         }
         Relationships: []
       }
