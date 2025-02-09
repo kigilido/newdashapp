@@ -37,7 +37,10 @@ export const ProfilePhotoUpload = ({
     try {
       setIsLoading(true);
       const file = event.target.files?.[0];
-      if (!file) return;
+      if (!file) {
+        console.log('No file selected');
+        return;
+      }
 
       if (!file.type.startsWith('image/')) {
         toast({
@@ -58,7 +61,16 @@ export const ProfilePhotoUpload = ({
       }
 
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
+      if (!user) {
+        console.error('No user found');
+        throw new Error('No user found');
+      }
+
+      console.log('Uploading file:', {
+        name: file.name,
+        type: file.type,
+        size: file.size
+      });
 
       const fileExt = file.name.split('.').pop();
       const filePath = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
@@ -67,11 +79,18 @@ export const ProfilePhotoUpload = ({
         .from('profile_photos')
         .upload(filePath, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('File uploaded successfully:', filePath);
 
       const { data: { publicUrl } } = supabase.storage
         .from('profile_photos')
         .getPublicUrl(filePath);
+
+      console.log('Public URL:', publicUrl);
 
       await updateProfile(user.id, username, licensePlate, publicUrl);
       setAvatarUrl(publicUrl);
@@ -95,7 +114,7 @@ export const ProfilePhotoUpload = ({
   return (
     <div className="flex flex-col items-center gap-4">
       <Avatar className="h-24 w-24">
-        <AvatarImage src={avatarUrl} />
+        <AvatarImage src={avatarUrl} alt={username} />
         <AvatarFallback className="text-lg">
           {username ? getInitials(username) : '?'}
         </AvatarFallback>
@@ -115,7 +134,7 @@ export const ProfilePhotoUpload = ({
           disabled={isLoading}
         >
           <Upload className="h-4 w-4 mr-2" />
-          Upload Photo
+          {isLoading ? 'Uploading...' : 'Upload Photo'}
         </Button>
       </div>
     </div>
