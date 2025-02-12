@@ -173,7 +173,7 @@ export const ConversationList = ({
               onClick={() => onSelect(conv.id)}
             >
               <Avatar className="h-12 w-12">
-                <AvatarFallback className="bg-violet-100 text-violet-600">
+                <AvatarFallback className="bg-[#3A86FF]/10 text-[#3A86FF]">
                   {getInitials(username)}
                 </AvatarFallback>
               </Avatar>
