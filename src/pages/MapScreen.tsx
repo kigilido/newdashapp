@@ -61,21 +61,6 @@ const MapScreen = () => {
 
   const handleMapInitialized = (initializedMap: mapboxgl.Map) => {
     setMap(initializedMap);
-
-    // Add custom location control
-    const locationControlContainer = document.createElement('div');
-    locationControlContainer.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
-    const locationButton = document.createElement('button');
-    locationButton.className = 'custom-map-control';
-    locationButton.innerHTML = '<span class="lucide-navigation-2"></span>';
-    locationButton.addEventListener('click', handleMyLocation);
-    locationControlContainer.appendChild(locationButton);
-    initializedMap.addControl({
-      onAdd: () => locationControlContainer,
-      onRemove: () => {
-        locationControlContainer.parentNode?.removeChild(locationControlContainer);
-      }
-    }, 'top-right');
   };
 
   const handleMyLocation = () => {
@@ -124,36 +109,28 @@ const MapScreen = () => {
       <h1 className="text-2xl font-bold mb-4">Location</h1>
       
       <div className="relative flex-1">
-        <div className="absolute inset-x-0 top-4 z-10 px-4">
-          <LocationSearch 
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            onSearch={handleSearch}
-          />
-        </div>
-
         <Card className="w-full h-full overflow-hidden">
           <MapContainer onMapInitialized={handleMapInitialized} />
           <VehicleMarkers map={map} />
+          <div className="absolute inset-x-0 top-4 z-10 px-4">
+            <LocationSearch 
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              onSearch={handleSearch}
+            />
+          </div>
+          <button
+            onClick={handleMyLocation}
+            className="absolute left-4 top-[5.5rem] z-10 bg-white p-2 rounded-lg shadow-md hover:bg-gray-50 transition-colors"
+          >
+            <span className="lucide-navigation-2 text-[#3A86FF]" />
+          </button>
           <style>{`
-            .custom-map-control {
-              width: 29px;
-              height: 29px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              cursor: pointer;
-              border: none;
-              background: white;
-            }
-            .custom-map-control:hover {
-              background: #f3f4f6;
-            }
             .lucide-navigation-2 {
-              width: 16px;
-              height: 16px;
+              width: 20px;
+              height: 20px;
               display: inline-block;
-              background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 7 19-7-4-7 4 7-19z"/></svg>');
+              background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%233A86FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 7 19-7-4-7 4 7-19z"/></svg>');
               background-size: contain;
               background-repeat: no-repeat;
               background-position: center;
