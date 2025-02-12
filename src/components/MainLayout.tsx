@@ -62,9 +62,9 @@ const MainLayout = () => {
               className={({ isActive }) =>
                 cn(
                   "flex flex-col items-center p-2 rounded-lg transition-colors",
-                  "hover:bg-pink-50",
+                  "hover:bg-[#3A86FF]/10",
                   isActive
-                    ? "text-pink-600 bg-pink-50"
+                    ? "text-[#3A86FF] bg-[#3A86FF]/10"
                     : "text-muted-foreground"
                 )
               }
