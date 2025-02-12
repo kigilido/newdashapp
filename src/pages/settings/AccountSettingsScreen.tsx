@@ -13,19 +13,38 @@ const AccountSettingsScreen = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
       
+      // Try to get the profile first
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .maybeSingle();
       
-      if (error && error.message !== 'No rows found') {
+      // If there's an error other than "no rows", throw it
+      if (error && !error.message.includes('no rows')) {
         throw error;
       }
 
+      // If no profile exists, create one
+      if (!profile) {
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert([{ id: user.id, email: user.email }])
+          .select()
+          .single();
+
+        if (createError) throw createError;
+        
+        return {
+          email: user.email,
+          ...(newProfile || {})
+        };
+      }
+
+      // Return existing profile
       return {
         email: user.email,
-        ...(profile || {})
+        ...profile
       };
     },
   });
