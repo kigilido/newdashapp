@@ -27,7 +27,7 @@ const MainLayout = () => {
 
   return (
     <div 
-      className="flex flex-col min-h-screen bg-gradient-to-b from-blue-50 via-white to-blue-50"
+      className="flex flex-col min-h-screen bg-[#F8F9FA]"
       style={{ 
         width: isMobile ? '100%' : mobileWidth,
         margin: isMobile ? '0' : '0 auto',

@@ -5,7 +5,7 @@
  
 @layer base {
   :root {
-    --background: 217 100% 98%;
+    --background: 210 17% 98%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
@@ -55,7 +55,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-gradient-to-b from-blue-50 via-white to-blue-50 min-h-screen text-foreground antialiased dark:from-gray-950 dark:via-gray-900 dark:to-gray-950;
+    @apply bg-[#F8F9FA] min-h-screen text-foreground antialiased dark:from-gray-950 dark:via-gray-900 dark:to-gray-950;
   }
 
   /* Mobile preview styles */
@@ -66,7 +66,7 @@
   }
 
   body:has(#root[style*="--mobile-preview-width"]) #root {
-    @apply bg-gradient-to-b from-blue-50 via-white to-blue-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950;
+    @apply bg-[#F8F9FA] dark:from-gray-950 dark:via-gray-900 dark:to-gray-950;
     width: var(--mobile-preview-width);
     height: calc(100vh - 4rem);
     border-radius: 2rem;
