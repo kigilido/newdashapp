@@ -5,16 +5,18 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { Database } from "@/integrations/supabase/types";
 
 type FontStyle = "primary" | "body" | "accent";
 type FontOption = "satoshi" | "inter" | "poppins";
+type FontPreferences = Database['public']['Tables']['font_preferences']['Row'];
 
 export const FontPreferencesSection = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Fetch current font preferences
-  const { data: fontPreferences, isLoading } = useQuery({
+  const { data: fontPreferences, isLoading } = useQuery<FontPreferences>({
     queryKey: ['fontPreferences'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();

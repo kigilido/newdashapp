@@ -131,6 +131,33 @@ export type Database = {
         }
         Relationships: []
       }
+      font_preferences: {
+        Row: {
+          accent_font: string
+          body_font: string
+          created_at: string
+          id: string
+          primary_font: string
+          updated_at: string
+        }
+        Insert: {
+          accent_font?: string
+          body_font?: string
+          created_at?: string
+          id: string
+          primary_font?: string
+          updated_at?: string
+        }
+        Update: {
+          accent_font?: string
+          body_font?: string
+          created_at?: string
+          id?: string
+          primary_font?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       message_attachments: {
         Row: {
           content_type: string
