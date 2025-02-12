@@ -11,19 +11,19 @@
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 217 100% 61%;
+    --primary: 342 100% 50%;
     --primary-foreground: 0 0% 98%;
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
-    --accent: 217 100% 61%;
+    --accent: 342 100% 50%;
     --accent-foreground: 240 5.9% 10%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 217 100% 61%;
+    --ring: 342 100% 50%;
     --radius: 1rem;
   }
 
@@ -34,7 +34,7 @@
     --card-foreground: 0 0% 98%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 217 100% 61%;
+    --primary: 342 100% 50%;
     --primary-foreground: 240 5.9% 10%;
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
@@ -84,7 +84,7 @@
 }
 
 .message-bubble-sent {
-  @apply bg-gradient-to-r from-blue-500 to-blue-600 text-white ml-auto;
+  @apply bg-gradient-to-r from-pink-500 to-rose-600 text-white ml-auto;
 }
 
 .message-bubble-received {
@@ -105,9 +105,9 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-blue-200 rounded-full;
+  @apply bg-pink-200 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-blue-300;
+  @apply bg-pink-300;
 }
