@@ -11,12 +11,12 @@ const SplashScreen = () => {
           className="w-24 h-24 mb-2 animate-fade-in"
         />
         <div className="relative">
-          <div className="text-5xl font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+          <div className="text-5xl font-bold bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">
             Lynkr
           </div>
-          <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-full"></div>
+          <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full"></div>
         </div>
-        <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
       </div>
     </div>
   );

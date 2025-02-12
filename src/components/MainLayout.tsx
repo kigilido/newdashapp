@@ -27,7 +27,7 @@ const MainLayout = () => {
 
   return (
     <div 
-      className="flex flex-col min-h-screen bg-gradient-to-b from-purple-50 via-white to-purple-50"
+      className="flex flex-col min-h-screen bg-gradient-to-b from-blue-50 via-white to-blue-50"
       style={{ 
         width: isMobile ? '100%' : mobileWidth,
         margin: isMobile ? '0' : '0 auto',
@@ -62,9 +62,9 @@ const MainLayout = () => {
               className={({ isActive }) =>
                 cn(
                   "flex flex-col items-center p-2 rounded-lg transition-colors",
-                  "hover:bg-violet-50",
+                  "hover:bg-blue-50",
                   isActive
-                    ? "text-violet-600 bg-violet-50"
+                    ? "text-blue-600 bg-blue-50"
                     : "text-muted-foreground"
                 )
               }
