@@ -42,7 +42,7 @@ export const Header = ({ title, showBack = false }: HeaderProps) => {
             <Menu className="h-5 w-5 text-violet-600" />
           </Button>
         )}
-        <h1 className="text-lg font-semibold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+        <h1 className="text-lg font-satoshi font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
           {displayTitle}
         </h1>
         <div className="w-10" />
