@@ -31,7 +31,7 @@ export const LogoutSection = () => {
     <Card>
       <CardContent className="pt-6">
         <Button 
-          variant="destructive" 
+          variant="default" 
           className="w-full" 
           onClick={handleLogout}
         >
