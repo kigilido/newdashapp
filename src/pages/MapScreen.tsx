@@ -121,7 +121,7 @@ const MapScreen = () => {
           </div>
           <button
             onClick={handleMyLocation}
-            className="absolute left-4 top-[5.5rem] z-10 bg-white p-2 rounded-lg shadow-md hover:bg-gray-50 transition-colors"
+            className="absolute right-4 bottom-4 z-10 bg-white p-2 rounded-lg shadow-md hover:bg-gray-50 transition-colors"
           >
             <span className="lucide-navigation-2 text-[#3A86FF]" />
           </button>
