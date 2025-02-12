@@ -13,15 +13,19 @@ const AccountSettingsScreen = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
       
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
       
+      if (error && error.message !== 'No rows found') {
+        throw error;
+      }
+
       return {
         email: user.email,
-        ...profile
+        ...(profile || {})
       };
     },
   });
