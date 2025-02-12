@@ -112,7 +112,7 @@ const MapScreen = () => {
         <Card className="w-full h-full overflow-hidden">
           <MapContainer onMapInitialized={handleMapInitialized} />
           <VehicleMarkers map={map} />
-          <div className="absolute inset-x-0 top-4 z-10 px-4">
+          <div className="absolute inset-x-0 top-4 z-10 px-4 pr-16">
             <LocationSearch 
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
