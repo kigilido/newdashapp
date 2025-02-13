@@ -8,8 +8,8 @@ interface ChatEnvironmentToggleProps {
 
 export const ChatEnvironmentToggle = ({ environment, onToggle }: ChatEnvironmentToggleProps) => {
   return (
-    <div className="flex justify-center mb-4">
-      <div className="relative bg-white rounded-full p-1 shadow-lg flex items-center">
+    <div className="flex justify-center">
+      <div className="relative bg-white rounded-full p-1 shadow-sm flex items-center">
         <button
           onClick={onToggle}
           className={`relative flex items-center gap-2 px-4 py-2 rounded-full transition-colors ${

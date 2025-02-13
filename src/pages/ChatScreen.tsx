@@ -76,15 +76,19 @@ const ChatScreen = () => {
 
   const handleContactSelect = async (contactId: string) => {
     // This function will be implemented when contact selection is needed
+    console.log("Contact selected:", contactId);
   };
 
-  if (isMobile) {
-    return (
-      <div className="h-[calc(100vh-12rem)] relative">
+  return (
+    <div className="flex flex-col h-[calc(100vh-12rem)]">
+      <div className="flex-none py-2">
         <ChatEnvironmentToggle 
           environment={chatEnvironment} 
           onToggle={handleToggleEnvironment} 
         />
+      </div>
+      
+      <div className="flex-1 overflow-hidden">
         {showConversations ? (
           <div className="h-full overflow-y-auto">
             <ChatListView
@@ -106,35 +110,6 @@ const ChatScreen = () => {
           />
         )}
       </div>
-    );
-  }
-
-  return (
-    <div className="h-[calc(100vh-12rem)] relative">
-      <ChatEnvironmentToggle 
-        environment={chatEnvironment} 
-        onToggle={handleToggleEnvironment} 
-      />
-      {showConversations ? (
-        <div className="h-full overflow-y-auto">
-          <ChatListView
-            chatEnvironment={chatEnvironment}
-            conversations={conversations}
-            selectedConversation={selectedConversation}
-            setSelectedConversation={setSelectedConversation}
-            handleContactSelect={handleContactSelect}
-            handleNewConversation={handleNewConversation}
-          />
-        </div>
-      ) : (
-        <ChatView
-          messages={messages}
-          isLoading={isLoading}
-          handleSendMessage={handleSendMessage}
-          handleBackToConversations={handleBackToConversations}
-          chatEnvironment={chatEnvironment}
-        />
-      )}
     </div>
   );
 };
