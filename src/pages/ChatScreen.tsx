@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNotifications } from "@/components/chat/NotificationsHandler";
@@ -10,7 +11,7 @@ import { ChatListView } from "@/components/chat/ChatListView";
 
 const ChatScreen = () => {
   const [showConversations, setShowConversations] = useState(true);
-  const [chatEnvironment, setChatEnvironment] = useState<"general" | "contacts">("general");
+  const [chatEnvironment, setChatEnvironment] = useState<"general" | "contacts">("contacts");
   const isMobile = useIsMobile();
   const { showNotification } = useNotifications();
   const { checkLocationPermission } = useLocationPermission();
