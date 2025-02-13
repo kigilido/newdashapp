@@ -1,10 +1,8 @@
 
 import { useEffect, useState } from 'react';
-import { Plugins } from '@capacitor/core';
+import { Contacts } from '@capacitor/contacts';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-
-const { Contacts } = Plugins;
 
 export const useContactsPermission = () => {
   const [hasPermission, setHasPermission] = useState(false);
