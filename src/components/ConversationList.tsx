@@ -145,42 +145,7 @@ export const ConversationList = ({
   };
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2 px-4 py-2">
-        {isCreating ? (
-          <div className="flex flex-col gap-2 w-full">
-            <Input
-              value={recipientUsername}
-              onChange={e => setRecipientUsername(e.target.value)}
-              placeholder="Enter username..."
-              className="flex-1"
-            />
-            <div className="flex gap-2">
-              <Button onClick={handleCreateConversation} className="flex-1">
-                Create
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setIsCreating(false);
-                  setRecipientUsername("");
-                }}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <Button
-            onClick={() => setIsCreating(true)}
-            variant="ghost"
-            className="w-full flex items-center gap-2 hover:bg-gray-100"
-          >
-            <Plus className="h-4 w-4" />
-            New Chat
-          </Button>
-        )}
-      </div>
+    <div className="relative h-full">
       <div className="space-y-[1px] bg-gray-200">
         {conversationsWithLastMessage.map(conv => {
           const username = getUsername(conv.title);
@@ -216,6 +181,41 @@ export const ConversationList = ({
           );
         })}
       </div>
+
+      {isCreating ? (
+        <div className="fixed bottom-20 right-4 left-4 bg-white p-4 rounded-lg shadow-lg z-20">
+          <div className="flex flex-col gap-2">
+            <Input
+              value={recipientUsername}
+              onChange={e => setRecipientUsername(e.target.value)}
+              placeholder="Enter username..."
+              className="flex-1"
+            />
+            <div className="flex gap-2">
+              <Button onClick={handleCreateConversation} className="flex-1">
+                Create
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setIsCreating(false);
+                  setRecipientUsername("");
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <Button
+          onClick={() => setIsCreating(true)}
+          size="icon"
+          className="fixed bottom-20 right-4 h-14 w-14 rounded-full shadow-lg z-20"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      )}
     </div>
   );
 };
