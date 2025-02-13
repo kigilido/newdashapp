@@ -2,11 +2,10 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Import } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useContactsPermission } from "@/components/chat/ContactsPermissionHandler";
 
 interface Contact {
   id: string;
@@ -32,7 +31,6 @@ export const ContactsList = ({
   const [contacts, setContacts] = useState<Contact[]>([]);
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
-  const { importPhoneContacts } = useContactsPermission();
 
   useEffect(() => {
     loadContacts();
@@ -142,11 +140,6 @@ export const ContactsList = ({
     }
   };
 
-  const handleImportContacts = async () => {
-    await importPhoneContacts();
-    await loadContacts();
-  };
-
   if (isLoading) {
     return <div className="p-4">Loading contacts...</div>;
   }
@@ -171,24 +164,14 @@ export const ContactsList = ({
             </div>
           </div>
         ) : (
-          <div className="flex gap-2 w-full">
-            <Button
-              onClick={() => setIsAddingContact(true)}
-              variant="outline"
-              className="flex-1 flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Contact
-            </Button>
-            <Button
-              onClick={handleImportContacts}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Import className="h-4 w-4" />
-              Import
-            </Button>
-          </div>
+          <Button
+            onClick={() => setIsAddingContact(true)}
+            variant="outline"
+            className="flex-1 flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Contact
+          </Button>
         )}
       </div>
       <div className="space-y-2">
