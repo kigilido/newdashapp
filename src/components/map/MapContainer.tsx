@@ -23,7 +23,11 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
 
     const initializeMap = async () => {
       try {
-        const { data: { token }, error } = await supabase.functions.invoke('get-mapbox-token');
+        // First attempt to get token from edge function
+        const { data: { token }, error } = await supabase.functions.invoke('get-mapbox-token', {
+          method: 'POST',
+          body: {},
+        });
         
         if (error) throw error;
 
