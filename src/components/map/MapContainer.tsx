@@ -18,17 +18,25 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   const [isSatelliteView, setIsSatelliteView] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
   const [mapboxToken, setMapboxToken] = useState(() => {
-    // Try to get token from localStorage to persist it
-    return localStorage.getItem('mapbox_token') || '';
+    const token = localStorage.getItem('mapbox_token');
+    console.log('Initial token from localStorage:', token); // Debug log
+    return token || '';
   });
 
   const handleTokenSubmit = (token: string) => {
+    console.log('Setting new token:', token); // Debug log
     setMapboxToken(token);
     localStorage.setItem('mapbox_token', token);
+    toast({
+      title: "Success",
+      description: "Mapbox token has been set successfully",
+    });
   };
 
   useEffect(() => {
     if (!mapContainer.current || !mapboxToken || map.current) return;
+
+    console.log('Initializing map with token:', mapboxToken); // Debug log
 
     try {
       mapboxgl.accessToken = mapboxToken;
@@ -72,7 +80,6 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         description: "Failed to initialize map. Please check your Mapbox token.",
         variant: "destructive"
       });
-      // Clear invalid token
       localStorage.removeItem('mapbox_token');
       setMapboxToken('');
     }
