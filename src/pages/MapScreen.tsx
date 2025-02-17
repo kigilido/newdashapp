@@ -6,9 +6,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { MapContainer } from '@/components/map/MapContainer';
 import { LocationSearch } from '@/components/map/LocationSearch';
 import { VehicleMarkers } from '@/components/map/VehicleMarkers';
+import mapboxgl from 'mapbox-gl';
 
 const MapScreen = () => {
-  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [map, setMap] = useState<mapboxgl.Map | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
 
@@ -32,23 +33,27 @@ const MapScreen = () => {
   const handleSearch = async () => {
     if (!map || !searchQuery) return;
 
-    const geocoder = new google.maps.Geocoder();
-    
     try {
-      const results = await geocoder.geocode({ address: searchQuery });
+      const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?access_token=${mapboxgl.accessToken}`
+      );
       
-      if (results.results && results.results.length > 0) {
-        const location = results.results[0].geometry.location;
+      const data = await response.json();
+      
+      if (data.features && data.features.length > 0) {
+        const [lng, lat] = data.features[0].center;
         
-        map.panTo(location);
-        map.setZoom(12);
+        map.flyTo({
+          center: [lng, lat],
+          zoom: 12
+        });
       }
     } catch (error) {
       console.error('Error searching location:', error);
     }
   };
 
-  const handleMapInitialized = (initializedMap: google.maps.Map) => {
+  const handleMapInitialized = (initializedMap: mapboxgl.Map) => {
     setMap(initializedMap);
   };
 
@@ -60,9 +65,10 @@ const MapScreen = () => {
         async (position) => {
           const { latitude, longitude } = position.coords;
           
-          const latLng = new google.maps.LatLng(latitude, longitude);
-          map.panTo(latLng);
-          map.setZoom(14);
+          map.flyTo({
+            center: [longitude, latitude],
+            zoom: 14
+          });
 
           await updateUserLocation(latitude, longitude);
 
