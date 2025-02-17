@@ -1,62 +1,100 @@
 
 import { useEffect, useRef, useState } from 'react';
-import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import { Map as MapIcon, Satellite } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MapContainerProps {
-  onMapInitialized: (map: google.maps.Map) => void;
+  onMapInitialized: (map: mapboxgl.Map) => void;
 }
 
-// Create a single loader configuration object
-const loaderOptions = {
-  googleMapsApiKey: 'YOUR_GOOGLE_MAPS_API_KEY',
-  id: 'google-map-script'
-};
-
 export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
-  const mapRef = useRef<google.maps.Map | null>(null);
+  const mapContainer = useRef<HTMLDivElement | null>(null);
+  const map = useRef<mapboxgl.Map | null>(null);
   const { toast } = useToast();
   const [isSatelliteView, setIsSatelliteView] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
 
-  const { isLoaded } = useJsApiLoader(loaderOptions);
+  useEffect(() => {
+    let isMounted = true;
+
+    const initializeMap = async () => {
+      try {
+        const { data: { token }, error } = await supabase.functions.invoke('get-mapbox-token');
+        
+        if (error) throw error;
+
+        if (!mapContainer.current || !token || !isMounted) return;
+
+        mapboxgl.accessToken = token;
+        
+        const newMap = new mapboxgl.Map({
+          container: mapContainer.current,
+          style: isSatelliteView ? 'mapbox://styles/mapbox/satellite-v9' : 'mapbox://styles/mapbox/light-v11',
+          projection: 'globe',
+          zoom: 1.5,
+          center: [30, 15],
+          pitch: 45,
+        });
+
+        newMap.addControl(
+          new mapboxgl.NavigationControl({
+            visualizePitch: true,
+          }),
+          'top-right'
+        );
+
+        newMap.scrollZoom.disable();
+
+        newMap.on('style.load', () => {
+          newMap.setFog({
+            color: 'rgb(255, 255, 255)',
+            'high-color': 'rgb(200, 200, 225)',
+            'horizon-blend': 0.2,
+          });
+        });
+
+        map.current = newMap;
+        setIsMapReady(true);
+        onMapInitialized(newMap);
+      } catch (error) {
+        console.error('Error initializing map:', error);
+        toast({
+          title: "Error",
+          description: "Failed to initialize map. Please try again later.",
+          variant: "destructive"
+        });
+      }
+    };
+
+    initializeMap();
+
+    return () => {
+      isMounted = false;
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+      }
+    };
+  }, [onMapInitialized, toast]);
 
   const toggleMapStyle = () => {
-    if (!mapRef.current || !isMapReady) return;
+    if (!map.current || !isMapReady) return;
     
-    mapRef.current.setMapTypeId(isSatelliteView ? 'roadmap' : 'satellite');
+    const newStyle = isSatelliteView 
+      ? 'mapbox://styles/mapbox/light-v11'
+      : 'mapbox://styles/mapbox/satellite-v9';
+      
+    map.current.setStyle(newStyle);
     setIsSatelliteView(!isSatelliteView);
   };
 
-  const onLoad = (map: google.maps.Map) => {
-    mapRef.current = map;
-    setIsMapReady(true);
-    onMapInitialized(map);
-  };
-
-  const onUnmount = () => {
-    mapRef.current = null;
-    setIsMapReady(false);
-  };
-
-  if (!isLoaded) return <div>Loading...</div>;
-
   return (
     <div className="relative w-full h-full">
-      <GoogleMap
-        mapContainerClassName="absolute inset-0"
-        center={{ lat: 15, lng: 30 }}
-        zoom={2}
-        onLoad={onLoad}
-        onUnmount={onUnmount}
-        options={{
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: false,
-        }}
-      />
+      <div ref={mapContainer} className="absolute inset-0" />
       <div className="absolute top-16 left-4 z-10">
         <Button
           variant="outline"
