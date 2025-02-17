@@ -96,13 +96,13 @@ export const ContactsList = ({
           return;
         }
 
-        // Add the contact
+        // Add the contact with the custom name (username input is used as name)
         const { error: contactError } = await supabase
           .from('contacts')
           .insert([
             {
               contact_user_id: profiles.id,
-              name: profiles.username,
+              name: username.trim(), // Use the input as the contact name
               user_id: user.id
             }
           ]);
@@ -170,7 +170,7 @@ export const ContactsList = ({
             <Input
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter username..."
+              placeholder="Enter contact name..."
               className="flex-1"
             />
             <div className="flex gap-2">
