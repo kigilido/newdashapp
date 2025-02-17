@@ -17,69 +17,73 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   const { toast } = useToast();
   const [isSatelliteView, setIsSatelliteView] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
-  const [mapboxToken, setMapboxToken] = useState('');
+  const [mapboxToken, setMapboxToken] = useState(() => {
+    // Try to get token from localStorage to persist it
+    return localStorage.getItem('mapbox_token') || '';
+  });
+
+  const handleTokenSubmit = (token: string) => {
+    setMapboxToken(token);
+    localStorage.setItem('mapbox_token', token);
+  };
 
   useEffect(() => {
-    let isMounted = true;
+    if (!mapContainer.current || !mapboxToken || map.current) return;
 
-    const initializeMap = async () => {
-      try {
-        if (!mapContainer.current || !isMounted || !mapboxToken) return;
+    try {
+      mapboxgl.accessToken = mapboxToken;
+      
+      const newMap = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: isSatelliteView ? 'mapbox://styles/mapbox/satellite-v9' : 'mapbox://styles/mapbox/light-v11',
+        projection: 'globe',
+        zoom: 1.5,
+        center: [30, 15],
+        pitch: 45,
+      });
 
-        mapboxgl.accessToken = mapboxToken;
+      newMap.addControl(
+        new mapboxgl.NavigationControl({
+          visualizePitch: true,
+        }),
+        'top-right'
+      );
+
+      newMap.scrollZoom.disable();
+
+      newMap.on('style.load', () => {
+        if (!newMap) return;
         
-        const newMap = new mapboxgl.Map({
-          container: mapContainer.current,
-          style: isSatelliteView ? 'mapbox://styles/mapbox/satellite-v9' : 'mapbox://styles/mapbox/light-v11',
-          projection: 'globe',
-          zoom: 1.5,
-          center: [30, 15],
-          pitch: 45,
+        newMap.setFog({
+          color: 'rgb(255, 255, 255)',
+          'high-color': 'rgb(200, 200, 225)',
+          'horizon-blend': 0.2,
         });
+        
+        setIsMapReady(true);
+        onMapInitialized(newMap);
+      });
 
-        newMap.addControl(
-          new mapboxgl.NavigationControl({
-            visualizePitch: true,
-          }),
-          'top-right'
-        );
-
-        newMap.scrollZoom.disable();
-
-        newMap.on('style.load', () => {
-          if (!newMap) return;
-          
-          newMap.setFog({
-            color: 'rgb(255, 255, 255)',
-            'high-color': 'rgb(200, 200, 225)',
-            'horizon-blend': 0.2,
-          });
-          
-          setIsMapReady(true);
-          onMapInitialized(newMap);
-        });
-
-        map.current = newMap;
-      } catch (error) {
-        console.error('Error initializing map:', error);
-        toast({
-          title: "Error",
-          description: "Failed to initialize map. Please check your Mapbox token.",
-          variant: "destructive"
-        });
-      }
-    };
-
-    initializeMap();
+      map.current = newMap;
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      toast({
+        title: "Error",
+        description: "Failed to initialize map. Please check your Mapbox token.",
+        variant: "destructive"
+      });
+      // Clear invalid token
+      localStorage.removeItem('mapbox_token');
+      setMapboxToken('');
+    }
 
     return () => {
-      isMounted = false;
       if (map.current) {
         map.current.remove();
         map.current = null;
       }
     };
-  }, [onMapInitialized, toast, mapboxToken]);
+  }, [mapboxToken, onMapInitialized, isSatelliteView, toast]);
 
   const toggleMapStyle = () => {
     if (!map.current || !isMapReady) return;
@@ -98,14 +102,26 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-20">
           <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-4">Enter Mapbox Token</h3>
-            <Input
-              type="text"
-              placeholder="Enter your Mapbox public token..."
-              value={mapboxToken}
-              onChange={(e) => setMapboxToken(e.target.value)}
-              className="mb-2"
-            />
-            <p className="text-sm text-muted-foreground">
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                const input = e.currentTarget.querySelector('input');
+                if (input && input.value) {
+                  handleTokenSubmit(input.value);
+                }
+              }}
+              className="space-y-2"
+            >
+              <Input
+                type="text"
+                placeholder="Enter your Mapbox public token..."
+                className="mb-2"
+              />
+              <Button type="submit" className="w-full">
+                Set Token
+              </Button>
+            </form>
+            <p className="text-sm text-muted-foreground mt-2">
               Visit <a href="https://www.mapbox.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Mapbox.com</a> to get your public token
             </p>
           </div>
