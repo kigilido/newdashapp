@@ -2,14 +2,14 @@
 import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Marker } from '@react-google-maps/api';
+import mapboxgl from 'mapbox-gl';
 
 interface VehicleMarkersProps {
-  map: google.maps.Map | null;
+  map: mapboxgl.Map | null;
 }
 
 export const VehicleMarkers = ({ map }: VehicleMarkersProps) => {
-  const markersRef = useRef<{ [key: string]: google.maps.Marker }>({});
+  const markersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
 
   const { data: nearbyVehicles } = useQuery({
     queryKey: ['nearby-vehicles'],
@@ -29,32 +29,25 @@ export const VehicleMarkers = ({ map }: VehicleMarkersProps) => {
     if (!map || !nearbyVehicles) return;
 
     // Remove old markers
-    Object.values(markersRef.current).forEach(marker => marker.setMap(null));
+    Object.values(markersRef.current).forEach(marker => marker.remove());
     markersRef.current = {};
 
     // Add new markers
     nearbyVehicles.forEach((vehicle) => {
       if (!vehicle.profiles?.username && !vehicle.profiles?.license_plate) return;
 
-      const marker = new google.maps.Marker({
-        position: { lat: vehicle.latitude, lng: vehicle.longitude },
-        map,
-        title: vehicle.profiles?.username || 'Unknown User'
-      });
+      const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
+        <div class="p-2">
+          ${vehicle.profiles?.username ? `<p>User: ${vehicle.profiles.username}</p>` : ''}
+          ${vehicle.profiles?.license_plate ? `<p>Plate: ${vehicle.profiles.license_plate}</p>` : ''}
+          <p>Last seen: ${new Date(vehicle.last_updated).toLocaleTimeString()}</p>
+        </div>
+      `);
 
-      const infoWindow = new google.maps.InfoWindow({
-        content: `
-          <div class="p-2">
-            ${vehicle.profiles?.username ? `<p>User: ${vehicle.profiles.username}</p>` : ''}
-            ${vehicle.profiles?.license_plate ? `<p>Plate: ${vehicle.profiles.license_plate}</p>` : ''}
-            <p>Last seen: ${new Date(vehicle.last_updated).toLocaleTimeString()}</p>
-          </div>
-        `
-      });
-
-      marker.addListener('click', () => {
-        infoWindow.open(map, marker);
-      });
+      const marker = new mapboxgl.Marker()
+        .setLngLat([vehicle.longitude, vehicle.latitude])
+        .setPopup(popup)
+        .addTo(map);
 
       markersRef.current[vehicle.user_id] = marker;
     });
