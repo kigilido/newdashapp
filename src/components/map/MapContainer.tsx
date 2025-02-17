@@ -9,16 +9,19 @@ interface MapContainerProps {
   onMapInitialized: (map: google.maps.Map) => void;
 }
 
+// Create a single loader configuration object
+const loaderOptions = {
+  googleMapsApiKey: 'YOUR_GOOGLE_MAPS_API_KEY',
+  id: 'google-map-script'
+};
+
 export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   const mapRef = useRef<google.maps.Map | null>(null);
   const { toast } = useToast();
   const [isSatelliteView, setIsSatelliteView] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
 
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: 'YOUR_GOOGLE_MAPS_API_KEY' // Replace with your API key
-  });
+  const { isLoaded } = useJsApiLoader(loaderOptions);
 
   const toggleMapStyle = () => {
     if (!mapRef.current || !isMapReady) return;
