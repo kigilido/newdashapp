@@ -12,9 +12,17 @@ interface MapContainerProps {
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBep3kDQQTWw_6hbp1u0u85vkJL3VhUQ7Q';
 
 const mapOptions = {
+  version: 'weekly',
+  apiKey: GOOGLE_MAPS_API_KEY,
   id: 'google-map-script',
-  googleMapsApiKey: GOOGLE_MAPS_API_KEY
-};
+  libraries: ['maps'],
+  language: 'en',
+  region: 'US',
+  mapIds: [],
+  nonce: '',
+  url: 'https://maps.googleapis.com/maps/api/js',
+  authReferrerPolicy: 'origin'
+} as const;
 
 export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   const mapRef = useRef<google.maps.Map | null>(null);
