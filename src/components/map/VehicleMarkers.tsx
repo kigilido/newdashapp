@@ -13,12 +13,17 @@ export const VehicleMarkers = ({ map }: VehicleMarkersProps) => {
   const markersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
   const { toast } = useToast();
 
-  const { data: nearbyVehicles, error } = useQuery({
+  const { data: nearbyVehicles } = useQuery({
     queryKey: ['nearby-vehicles'],
     queryFn: async () => {
       const { data: session } = await supabase.auth.getSession();
       
       if (!session?.session) {
+        toast({
+          title: "Error",
+          description: "Authentication required to fetch vehicle locations",
+          variant: "destructive",
+        });
         throw new Error('Authentication required');
       }
 
@@ -29,6 +34,11 @@ export const VehicleMarkers = ({ map }: VehicleMarkersProps) => {
 
       if (error) {
         console.error('Supabase error:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch vehicle locations",
+          variant: "destructive",
+        });
         throw error;
       }
 
@@ -40,14 +50,6 @@ export const VehicleMarkers = ({ map }: VehicleMarkersProps) => {
     },
     refetchInterval: 10000,
     retry: 3,
-    onError: (error) => {
-      console.error('Query error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch vehicle locations. Please check your connection and authentication.",
-        variant: "destructive",
-      });
-    },
   });
 
   useEffect(() => {
