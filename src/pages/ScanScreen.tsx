@@ -124,6 +124,7 @@ const ScanScreen = () => {
 
   const performOCR = async (imageDataUrl: string) => {
     try {
+      console.log('Sending image for OCR processing...');
       const { data, error } = await supabase.functions.invoke('process-license-plate', {
         body: { image: imageDataUrl }
       });
@@ -142,6 +143,7 @@ const ScanScreen = () => {
         throw new Error(data.error);
       }
 
+      console.log('OCR response:', data);
       setRawText(data.rawText);
       return data.licensePlate;
     } catch (error) {
