@@ -19,12 +19,10 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   const [isMapReady, setIsMapReady] = useState(false);
   const [mapboxToken, setMapboxToken] = useState(() => {
     const token = localStorage.getItem('mapbox_token');
-    console.log('Initial token from localStorage:', token); // Debug log
     return token || '';
   });
 
   const handleTokenSubmit = (token: string) => {
-    console.log('Setting new token:', token); // Debug log
     setMapboxToken(token);
     localStorage.setItem('mapbox_token', token);
     toast({
@@ -35,8 +33,6 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
 
   useEffect(() => {
     if (!mapContainer.current || !mapboxToken || map.current) return;
-
-    console.log('Initializing map with token:', mapboxToken); // Debug log
 
     try {
       mapboxgl.accessToken = mapboxToken;
@@ -50,6 +46,8 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         pitch: 45,
       });
 
+      map.current = newMap;
+
       newMap.addControl(
         new mapboxgl.NavigationControl({
           visualizePitch: true,
@@ -59,7 +57,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
 
       newMap.scrollZoom.disable();
 
-      newMap.on('style.load', () => {
+      const setupMap = () => {
         if (!newMap) return;
         
         newMap.setFog({
@@ -70,9 +68,18 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         
         setIsMapReady(true);
         onMapInitialized(newMap);
-      });
+      };
 
-      map.current = newMap;
+      if (newMap.loaded()) {
+        setupMap();
+      } else {
+        newMap.once('load', setupMap);
+      }
+
+      return () => {
+        newMap.remove();
+        map.current = null;
+      };
     } catch (error) {
       console.error('Error initializing map:', error);
       toast({
@@ -83,25 +90,18 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
       localStorage.removeItem('mapbox_token');
       setMapboxToken('');
     }
+  }, [mapboxToken, onMapInitialized]); // Removed isSatelliteView from dependencies
 
-    return () => {
-      if (map.current) {
-        map.current.remove();
-        map.current = null;
-      }
-    };
-  }, [mapboxToken, onMapInitialized, isSatelliteView, toast]);
-
-  const toggleMapStyle = () => {
+  useEffect(() => {
     if (!map.current || !isMapReady) return;
     
+    const currentMap = map.current;
     const newStyle = isSatelliteView 
-      ? 'mapbox://styles/mapbox/light-v11'
-      : 'mapbox://styles/mapbox/satellite-v9';
+      ? 'mapbox://styles/mapbox/satellite-v9'
+      : 'mapbox://styles/mapbox/light-v11';
       
-    map.current.setStyle(newStyle);
-    setIsSatelliteView(!isSatelliteView);
-  };
+    currentMap.setStyle(newStyle);
+  }, [isSatelliteView, isMapReady]);
 
   return (
     <div className="relative w-full h-full">
@@ -140,7 +140,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
           variant="outline"
           size="icon"
           className="bg-white hover:bg-gray-100"
-          onClick={toggleMapStyle}
+          onClick={() => setIsSatelliteView(!isSatelliteView)}
           disabled={!isMapReady}
         >
           {isSatelliteView ? <MapIcon /> : <Satellite />}
