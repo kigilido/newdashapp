@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 import { Map as MapIcon, Satellite } from 'lucide-react';
