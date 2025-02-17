@@ -26,7 +26,6 @@ export const AuthForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate required fields for signup
     if (isSignUp && (!emailOrUsername || !password || !username || !licensePlate)) {
       toast({
         title: "Missing required fields",
@@ -36,7 +35,6 @@ export const AuthForm = () => {
       return;
     }
 
-    // Validate required fields for login
     if (!isSignUp && (!emailOrUsername || !password)) {
       toast({
         title: "Missing required fields",
@@ -75,6 +73,7 @@ export const AuthForm = () => {
         onChange={(e) => setEmailOrUsername(e.target.value)}
         disabled={isLoading}
         required
+        className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
       />
       <Input
         type="password"
@@ -83,6 +82,7 @@ export const AuthForm = () => {
         onChange={(e) => setPassword(e.target.value)}
         disabled={isLoading}
         required
+        className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
       />
       {isSignUp && (
         <SignUpFields
@@ -93,19 +93,21 @@ export const AuthForm = () => {
           isLoading={isLoading}
         />
       )}
-      <Button type="submit" className="w-full" disabled={isLoading}>
+      <Button 
+        type="submit" 
+        className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+        disabled={isLoading}
+      >
         {isLoading ? "Processing..." : isSignUp ? "Sign Up" : "Sign In"}
       </Button>
       <Button
         type="button"
         variant="ghost"
-        className="w-full"
+        className="w-full text-gray-300 hover:text-white hover:bg-white/10"
         onClick={() => setIsSignUp(!isSignUp)}
         disabled={isLoading}
       >
-        {isSignUp
-          ? "Already have an account? Sign In"
-          : "Don't have an account? Sign Up"}
+        {isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up"}
       </Button>
     </form>
   );
