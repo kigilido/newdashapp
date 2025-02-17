@@ -9,16 +9,20 @@ interface MapContainerProps {
   onMapInitialized: (map: google.maps.Map) => void;
 }
 
+const GOOGLE_MAPS_API_KEY = 'AIzaSyBep3kDQQTWw_6hbp1u0u85vkJL3VhUQ7Q';
+
+const mapOptions = {
+  id: 'google-map-script',
+  googleMapsApiKey: GOOGLE_MAPS_API_KEY
+};
+
 export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   const mapRef = useRef<google.maps.Map | null>(null);
   const { toast } = useToast();
   const [isSatelliteView, setIsSatelliteView] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
 
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: 'AIzaSyBep3kDQQTWw_6hbp1u0u85vkJL3VhUQ7Q'
-  });
+  const { isLoaded } = useJsApiLoader(mapOptions);
 
   const toggleMapStyle = () => {
     if (!mapRef.current || !isMapReady) return;
