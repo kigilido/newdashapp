@@ -23,17 +23,19 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
 
     const initializeMap = async () => {
       try {
-        // First attempt to get token from edge function
-        const { data: { token }, error } = await supabase.functions.invoke('get-mapbox-token', {
+        if (!mapContainer.current || !isMounted) return;
+
+        const { data, error } = await supabase.functions.invoke('get-mapbox-token', {
           method: 'POST',
           body: {},
         });
         
-        if (error) throw error;
+        if (error || !data?.token) {
+          console.error('Error getting Mapbox token:', error || 'No token received');
+          throw new Error('Failed to get Mapbox token');
+        }
 
-        if (!mapContainer.current || !token || !isMounted) return;
-
-        mapboxgl.accessToken = token;
+        mapboxgl.accessToken = data.token;
         
         const newMap = new mapboxgl.Map({
           container: mapContainer.current,
@@ -54,16 +56,19 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         newMap.scrollZoom.disable();
 
         newMap.on('style.load', () => {
+          if (!newMap) return;
+          
           newMap.setFog({
             color: 'rgb(255, 255, 255)',
             'high-color': 'rgb(200, 200, 225)',
             'horizon-blend': 0.2,
           });
+          
+          setIsMapReady(true);
+          onMapInitialized(newMap);
         });
 
         map.current = newMap;
-        setIsMapReady(true);
-        onMapInitialized(newMap);
       } catch (error) {
         console.error('Error initializing map:', error);
         toast({
