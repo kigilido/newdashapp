@@ -57,8 +57,8 @@ export const AuthForm = () => {
     }
   };
   return <form onSubmit={handleSubmit} className="space-y-4">
-      <Input type="text" placeholder={isSignUp ? "Email" : "Email or Username"} value={emailOrUsername} onChange={e => setEmailOrUsername(e.target.value)} disabled={isLoading} required className="border-white/20 text-white placeholder:text-gray-400 bg-slate-300 hover:bg-slate-200" />
-      <Input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} disabled={isLoading} required className="border-white/20 text-white placeholder:text-gray-400 bg-slate-300 hover:bg-slate-200" />
+      <Input type="text" placeholder={isSignUp ? "Email" : "Email or Username"} value={emailOrUsername} onChange={e => setEmailOrUsername(e.target.value)} disabled={isLoading} required className="border-white/20 text-white placeholder:text-gray-400 bg-slate-700 hover:bg-slate-600" />
+      <Input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} disabled={isLoading} required className="border-white/20 text-white placeholder:text-gray-400 bg-gray-700 hover:bg-gray-600" />
       {isSignUp && <SignUpFields username={username} setUsername={setUsername} licensePlate={licensePlate} setLicensePlate={setLicensePlate} isLoading={isLoading} />}
       <Button type="submit" className="w-full bg-blue-500 hover:bg-blue-600 text-white" disabled={isLoading}>
         {isLoading ? "Processing..." : isSignUp ? "Sign Up" : "Sign In"}
