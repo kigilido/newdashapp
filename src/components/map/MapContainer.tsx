@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react';
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 import { Map as MapIcon, Satellite } from 'lucide-react';
@@ -16,7 +17,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: 'YOUR_GOOGLE_MAPS_API_KEY' // Replace with your API key
+    googleMapsApiKey: 'AIzaSyBep3kDQQTWw_6hbp1u0u85vkJL3VhUQ7Q'
   });
 
   const toggleMapStyle = () => {
