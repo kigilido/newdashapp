@@ -26,31 +26,64 @@ export const VehicleMarkers = ({ map }: VehicleMarkersProps) => {
   });
 
   useEffect(() => {
+    // Wait for both map and data to be available
     if (!map || !nearbyVehicles) return;
 
-    // Remove old markers
-    Object.values(markersRef.current).forEach(marker => marker.remove());
-    markersRef.current = {};
+    // Ensure map is loaded before adding markers
+    if (!map.loaded()) {
+      map.once('load', () => {
+        updateMarkers();
+      });
+      return;
+    }
 
-    // Add new markers
-    nearbyVehicles.forEach((vehicle) => {
-      if (!vehicle.profiles?.username && !vehicle.profiles?.license_plate) return;
+    updateMarkers();
 
-      const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
-        <div class="p-2">
-          ${vehicle.profiles?.username ? `<p>User: ${vehicle.profiles.username}</p>` : ''}
-          ${vehicle.profiles?.license_plate ? `<p>Plate: ${vehicle.profiles.license_plate}</p>` : ''}
-          <p>Last seen: ${new Date(vehicle.last_updated).toLocaleTimeString()}</p>
-        </div>
-      `);
+    function updateMarkers() {
+      try {
+        // Remove old markers
+        Object.values(markersRef.current).forEach(marker => marker.remove());
+        markersRef.current = {};
 
-      const marker = new mapboxgl.Marker()
-        .setLngLat([vehicle.longitude, vehicle.latitude])
-        .setPopup(popup)
-        .addTo(map);
+        // Add new markers
+        nearbyVehicles.forEach((vehicle) => {
+          if (!vehicle.profiles?.username && !vehicle.profiles?.license_plate) return;
 
-      markersRef.current[vehicle.user_id] = marker;
-    });
+          const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
+            <div class="p-2">
+              ${vehicle.profiles?.username ? `<p>User: ${vehicle.profiles.username}</p>` : ''}
+              ${vehicle.profiles?.license_plate ? `<p>Plate: ${vehicle.profiles.license_plate}</p>` : ''}
+              <p>Last seen: ${new Date(vehicle.last_updated).toLocaleTimeString()}</p>
+            </div>
+          `);
+
+          try {
+            const marker = new mapboxgl.Marker()
+              .setLngLat([vehicle.longitude, vehicle.latitude])
+              .setPopup(popup)
+              .addTo(map);
+
+            markersRef.current[vehicle.user_id] = marker;
+          } catch (error) {
+            console.error('Error adding marker:', error);
+          }
+        });
+      } catch (error) {
+        console.error('Error updating markers:', error);
+      }
+    }
+
+    // Cleanup function
+    return () => {
+      Object.values(markersRef.current).forEach(marker => {
+        try {
+          marker.remove();
+        } catch (error) {
+          console.error('Error removing marker:', error);
+        }
+      });
+      markersRef.current = {};
+    };
   }, [nearbyVehicles, map]);
 
   return null;
