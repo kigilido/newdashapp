@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import mapboxgl from 'mapbox-gl';
+import { useToast } from '@/hooks/use-toast';
 
 interface VehicleMarkersProps {
   map: mapboxgl.Map | null;
@@ -10,26 +11,48 @@ interface VehicleMarkersProps {
 
 export const VehicleMarkers = ({ map }: VehicleMarkersProps) => {
   const markersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
+  const { toast } = useToast();
 
-  const { data: nearbyVehicles } = useQuery({
+  const { data: nearbyVehicles, error } = useQuery({
     queryKey: ['nearby-vehicles'],
     queryFn: async () => {
+      const { data: session } = await supabase.auth.getSession();
+      
+      if (!session?.session) {
+        throw new Error('Authentication required');
+      }
+
       const { data, error } = await supabase
         .from('vehicle_locations')
         .select('*, profiles(username, license_plate)')
         .order('last_updated', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      if (!data) {
+        return [];
+      }
+
       return data;
     },
     refetchInterval: 10000,
+    retry: 3,
+    onError: (error) => {
+      console.error('Query error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch vehicle locations. Please check your connection and authentication.",
+        variant: "destructive",
+      });
+    },
   });
 
   useEffect(() => {
-    // Wait for both map and data to be available
     if (!map || !nearbyVehicles) return;
 
-    // Ensure map is loaded before adding markers
     if (!map.loaded()) {
       map.once('load', () => {
         updateMarkers();
@@ -73,7 +96,6 @@ export const VehicleMarkers = ({ map }: VehicleMarkersProps) => {
       }
     }
 
-    // Cleanup function
     return () => {
       Object.values(markersRef.current).forEach(marker => {
         try {
