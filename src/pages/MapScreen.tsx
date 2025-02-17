@@ -1,6 +1,5 @@
 
 import { useState } from 'react';
-import mapboxgl from 'mapbox-gl';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +8,7 @@ import { LocationSearch } from '@/components/map/LocationSearch';
 import { VehicleMarkers } from '@/components/map/VehicleMarkers';
 
 const MapScreen = () => {
-  const [map, setMap] = useState<mapboxgl.Map | null>(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
 
@@ -33,33 +32,23 @@ const MapScreen = () => {
   const handleSearch = async () => {
     if (!map || !searchQuery) return;
 
+    const geocoder = new google.maps.Geocoder();
+    
     try {
-      const { data: { token } } = await supabase.functions.invoke('get-mapbox-token');
+      const results = await geocoder.geocode({ address: searchQuery });
       
-      const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
-          searchQuery
-        )}.json?access_token=${token}`
-      );
-      
-      const data = await response.json();
-      
-      if (data.features && data.features.length > 0) {
-        const [lng, lat] = data.features[0].center;
+      if (results.results && results.results.length > 0) {
+        const location = results.results[0].geometry.location;
         
-        map.flyTo({
-          center: [lng, lat],
-          zoom: 12,
-          duration: 2000,
-          essential: true
-        });
+        map.panTo(location);
+        map.setZoom(12);
       }
     } catch (error) {
       console.error('Error searching location:', error);
     }
   };
 
-  const handleMapInitialized = (initializedMap: mapboxgl.Map) => {
+  const handleMapInitialized = (initializedMap: google.maps.Map) => {
     setMap(initializedMap);
   };
 
@@ -71,14 +60,10 @@ const MapScreen = () => {
         async (position) => {
           const { latitude, longitude } = position.coords;
           
-          map.flyTo({
-            center: [longitude, latitude],
-            zoom: 14,
-            duration: 2000,
-            essential: true
-          });
+          const latLng = new google.maps.LatLng(latitude, longitude);
+          map.panTo(latLng);
+          map.setZoom(14);
 
-          // Update user's location in the database
           await updateUserLocation(latitude, longitude);
 
           toast({

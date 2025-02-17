@@ -1,194 +1,59 @@
 
 import { useEffect, useRef, useState } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 import { Map as MapIcon, Satellite } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 
 interface MapContainerProps {
-  onMapInitialized: (map: mapboxgl.Map) => void;
+  onMapInitialized: (map: google.maps.Map) => void;
 }
 
 export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const locationMarker = useRef<mapboxgl.Marker | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
   const { toast } = useToast();
   const [isSatelliteView, setIsSatelliteView] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
-  const isInitialized = useRef(false);
-  const mapboxToken = useRef<string | null>(null);
+
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: 'YOUR_GOOGLE_MAPS_API_KEY' // Replace with your API key
+  });
 
   const toggleMapStyle = () => {
-    if (!map.current || !isMapReady) return;
+    if (!mapRef.current || !isMapReady) return;
     
-    const newStyle = isSatelliteView
-      ? 'mapbox://styles/mapbox/streets-v12'
-      : 'mapbox://styles/mapbox/satellite-v9';
-    
-    map.current.setStyle(newStyle);
+    mapRef.current.setMapTypeId(isSatelliteView ? 'roadmap' : 'satellite');
     setIsSatelliteView(!isSatelliteView);
   };
 
-  const addLocationMarker = (longitude: number, latitude: number) => {
-    if (!map.current) return;
-
-    // Remove existing marker if it exists
-    if (locationMarker.current) {
-      locationMarker.current.remove();
-    }
-
-    try {
-      // Create a new marker
-      locationMarker.current = new mapboxgl.Marker({
-        color: '#7c3aed',
-        scale: 0.8,
-        draggable: false
-      })
-        .setLngLat([longitude, latitude])
-        .addTo(map.current);
-
-      // Add a popup
-      new mapboxgl.Popup({
-        closeButton: false,
-        closeOnClick: false
-      })
-        .setLngLat([longitude, latitude])
-        .setHTML('<div class="text-sm font-medium">Your location</div>')
-        .addTo(map.current);
-
-      toast({
-        title: "Location Updated",
-        description: "Your current location has been marked on the map.",
-      });
-    } catch (error) {
-      console.error('Error adding location marker:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add location marker to the map.",
-        variant: "destructive"
-      });
-    }
+  const onLoad = (map: google.maps.Map) => {
+    mapRef.current = map;
+    setIsMapReady(true);
+    onMapInitialized(map);
   };
 
-  useEffect(() => {
-    const initializeMap = async () => {
-      // Only fetch token once
-      if (!mapboxToken.current) {
-        try {
-          const { data, error } = await supabase.functions.invoke('get-mapbox-token', {
-            method: 'POST',
-          });
-          
-          if (error || !data?.token) {
-            console.error('Error fetching Mapbox token:', error);
-            toast({
-              title: "Error Loading Map",
-              description: "Failed to initialize the map. Please try again later.",
-              variant: "destructive",
-            });
-            return;
-          }
-          
-          mapboxToken.current = data.token;
-          mapboxgl.accessToken = data.token;
-          
-        } catch (error) {
-          console.error('Error in map initialization:', error);
-          toast({
-            title: "Map Error",
-            description: "An error occurred while setting up the map.",
-            variant: "destructive",
-          });
-          return;
-        }
-      }
+  const onUnmount = () => {
+    mapRef.current = null;
+    setIsMapReady(false);
+  };
 
-      if (!mapContainer.current || isInitialized.current || !mapboxToken.current) return;
-      
-      const createMap = (longitude: number, latitude: number, zoom: number) => {
-        if (!mapContainer.current) return;
-        
-        const mapInstance = new mapboxgl.Map({
-          container: mapContainer.current,
-          style: 'mapbox://styles/mapbox/streets-v12',
-          center: [longitude, latitude],
-          zoom,
-          pitch: 0,
-          bearing: 0
-        });
-
-        map.current = mapInstance;
-
-        // Add navigation controls
-        const navControl = new mapboxgl.NavigationControl({
-          visualizePitch: true,
-        });
-        mapInstance.addControl(navControl, 'top-right');
-
-        mapInstance.once('load', () => {
-          // Add location marker after map is loaded and fly to location
-          addLocationMarker(longitude, latitude);
-          mapInstance.flyTo({
-            center: [longitude, latitude],
-            zoom: 14,
-            essential: true
-          });
-          
-          setIsMapReady(true);
-          isInitialized.current = true;
-          onMapInitialized(mapInstance);
-        });
-
-        return mapInstance;
-      };
-
-      if ('geolocation' in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const { latitude, longitude } = position.coords;
-            createMap(longitude, latitude, 14);
-          },
-          (error) => {
-            console.error('Geolocation error:', error);
-            toast({
-              title: "Location Access Denied",
-              description: "Using default map location. Please enable location access for better experience.",
-              variant: "destructive"
-            });
-            createMap(30, 15, 2);
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 5000,
-            maximumAge: 0
-          }
-        );
-      } else {
-        createMap(30, 15, 2);
-      }
-    };
-
-    initializeMap();
-
-    return () => {
-      if (locationMarker.current) {
-        locationMarker.current.remove();
-      }
-      if (map.current && !map.current.isStyleLoaded()) {
-        map.current.remove();
-        map.current = null;
-        setIsMapReady(false);
-        isInitialized.current = false;
-      }
-    };
-  }, [onMapInitialized]);
+  if (!isLoaded) return <div>Loading...</div>;
 
   return (
     <div className="relative w-full h-full">
-      <div ref={mapContainer} className="absolute inset-0" />
+      <GoogleMap
+        mapContainerClassName="absolute inset-0"
+        center={{ lat: 15, lng: 30 }}
+        zoom={2}
+        onLoad={onLoad}
+        onUnmount={onUnmount}
+        options={{
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+        }}
+      />
       <div className="absolute top-16 left-4 z-10">
         <Button
           variant="outline"
