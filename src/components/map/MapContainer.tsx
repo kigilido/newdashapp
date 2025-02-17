@@ -5,7 +5,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { Map as MapIcon, Satellite } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { Input } from '@/components/ui/input';
 
 interface MapContainerProps {
   onMapInitialized: (map: mapboxgl.Map) => void;
@@ -17,25 +17,16 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   const { toast } = useToast();
   const [isSatelliteView, setIsSatelliteView] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
+  const [mapboxToken, setMapboxToken] = useState('');
 
   useEffect(() => {
     let isMounted = true;
 
     const initializeMap = async () => {
       try {
-        if (!mapContainer.current || !isMounted) return;
+        if (!mapContainer.current || !isMounted || !mapboxToken) return;
 
-        const { data, error } = await supabase.functions.invoke('get-mapbox-token', {
-          method: 'POST',
-          body: {},
-        });
-        
-        if (error || !data?.token) {
-          console.error('Error getting Mapbox token:', error || 'No token received');
-          throw new Error('Failed to get Mapbox token');
-        }
-
-        mapboxgl.accessToken = data.token;
+        mapboxgl.accessToken = mapboxToken;
         
         const newMap = new mapboxgl.Map({
           container: mapContainer.current,
@@ -73,7 +64,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         console.error('Error initializing map:', error);
         toast({
           title: "Error",
-          description: "Failed to initialize map. Please try again later.",
+          description: "Failed to initialize map. Please check your Mapbox token.",
           variant: "destructive"
         });
       }
@@ -88,7 +79,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         map.current = null;
       }
     };
-  }, [onMapInitialized, toast]);
+  }, [onMapInitialized, toast, mapboxToken]);
 
   const toggleMapStyle = () => {
     if (!map.current || !isMapReady) return;
@@ -103,6 +94,23 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
 
   return (
     <div className="relative w-full h-full">
+      {!mapboxToken && (
+        <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-20">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Enter Mapbox Token</h3>
+            <Input
+              type="text"
+              placeholder="Enter your Mapbox public token..."
+              value={mapboxToken}
+              onChange={(e) => setMapboxToken(e.target.value)}
+              className="mb-2"
+            />
+            <p className="text-sm text-muted-foreground">
+              Visit <a href="https://www.mapbox.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Mapbox.com</a> to get your public token
+            </p>
+          </div>
+        </div>
+      )}
       <div ref={mapContainer} className="absolute inset-0" />
       <div className="absolute top-16 left-4 z-10">
         <Button
