@@ -1,5 +1,5 @@
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Map as MapIcon, Satellite } from 'lucide-react';
@@ -17,7 +17,6 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   const { toast } = useToast();
   const [isSatelliteView, setIsSatelliteView] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
-  const [currentStyle, setCurrentStyle] = useState<string>('mapbox://styles/mapbox/light-v11');
   const [mapboxToken, setMapboxToken] = useState(() => {
     const token = localStorage.getItem('mapbox_token');
     return token || '';
@@ -31,6 +30,14 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
       description: "Mapbox token has been set successfully",
     });
   };
+
+  const setMapFog = useCallback((currentMap: mapboxgl.Map) => {
+    currentMap.setFog({
+      color: 'rgb(255, 255, 255)',
+      'high-color': 'rgb(200, 200, 225)',
+      'horizon-blend': 0.2,
+    });
+  }, []);
 
   // Initialize map
   useEffect(() => {
@@ -55,17 +62,10 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
       });
 
       map.current = newMap;
-      setCurrentStyle(initialStyle);
 
       const setupMap = () => {
         if (!newMap) return;
-
-        newMap.setFog({
-          color: 'rgb(255, 255, 255)',
-          'high-color': 'rgb(200, 200, 225)',
-          'horizon-blend': 0.2,
-        });
-
+        setMapFog(newMap);
         setIsMapReady(true);
         onMapInitialized(newMap);
       };
@@ -94,7 +94,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
       localStorage.removeItem('mapbox_token');
       setMapboxToken('');
     }
-  }, [mapboxToken, onMapInitialized]);
+  }, [mapboxToken, onMapInitialized, setMapFog]);
 
   // Handle style changes
   useEffect(() => {
@@ -105,24 +105,16 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
       ? 'mapbox://styles/mapbox/satellite-v9'
       : 'mapbox://styles/mapbox/light-v11';
 
-    if (newStyle !== currentStyle) {
-      currentMap.once('style.load', () => {
-        currentMap.setFog({
-          color: 'rgb(255, 255, 255)',
-          'high-color': 'rgb(200, 200, 225)',
-          'horizon-blend': 0.2,
-        });
-      });
+    currentMap.once('style.load', () => {
+      setMapFog(currentMap);
+    });
 
-      currentMap.setStyle(newStyle, {
-        localFontFamily: "'Satoshi', sans-serif",
-        localIdeographFontFamily: "'Satoshi', sans-serif",
-        diff: false
-      });
-
-      setCurrentStyle(newStyle);
-    }
-  }, [isSatelliteView, isMapReady, currentStyle]);
+    currentMap.setStyle(newStyle, {
+      localFontFamily: "'Satoshi', sans-serif",
+      localIdeographFontFamily: "'Satoshi', sans-serif",
+      diff: false
+    });
+  }, [isSatelliteView, isMapReady, setMapFog]);
 
   return (
     <div className="relative w-full h-full">
