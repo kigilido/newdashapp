@@ -17,6 +17,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   const { toast } = useToast();
   const [isSatelliteView, setIsSatelliteView] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
+  const [isStyleLoading, setIsStyleLoading] = useState(false);
   const [mapboxToken, setMapboxToken] = useState(() => {
     const token = localStorage.getItem('mapbox_token');
     return token || '';
@@ -38,6 +39,24 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
       'horizon-blend': 0.2,
     });
   }, []);
+
+  const handleStyleChange = useCallback((newStyle: string) => {
+    const currentMap = map.current;
+    if (!currentMap || !isMapReady || isStyleLoading) return;
+
+    setIsStyleLoading(true);
+
+    currentMap.once('style.load', () => {
+      setMapFog(currentMap);
+      setIsStyleLoading(false);
+    });
+
+    currentMap.setStyle(newStyle, {
+      localFontFamily: "'Satoshi', sans-serif",
+      localIdeographFontFamily: "'Satoshi', sans-serif",
+      diff: false
+    });
+  }, [isMapReady, isStyleLoading, setMapFog]);
 
   // Initialize map
   useEffect(() => {
@@ -63,12 +82,11 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
 
       map.current = newMap;
 
-      const setupMap = () => {
-        if (!newMap) return;
+      newMap.on('load', () => {
         setMapFog(newMap);
         setIsMapReady(true);
         onMapInitialized(newMap);
-      };
+      });
 
       newMap.addControl(
         new mapboxgl.NavigationControl({
@@ -78,7 +96,6 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
       );
 
       newMap.scrollZoom.disable();
-      newMap.once('load', setupMap);
 
       return () => {
         newMap.remove();
@@ -94,27 +111,18 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
       localStorage.removeItem('mapbox_token');
       setMapboxToken('');
     }
-  }, [mapboxToken, onMapInitialized, setMapFog]);
+  }, [mapboxToken, onMapInitialized, setMapFog, isSatelliteView]);
 
   // Handle style changes
   useEffect(() => {
-    const currentMap = map.current;
-    if (!currentMap || !isMapReady) return;
+    if (!isMapReady || isStyleLoading) return;
 
     const newStyle = isSatelliteView 
       ? 'mapbox://styles/mapbox/satellite-v9'
       : 'mapbox://styles/mapbox/light-v11';
 
-    currentMap.once('style.load', () => {
-      setMapFog(currentMap);
-    });
-
-    currentMap.setStyle(newStyle, {
-      localFontFamily: "'Satoshi', sans-serif",
-      localIdeographFontFamily: "'Satoshi', sans-serif",
-      diff: false
-    });
-  }, [isSatelliteView, isMapReady, setMapFog]);
+    handleStyleChange(newStyle);
+  }, [isSatelliteView, isMapReady, handleStyleChange, isStyleLoading]);
 
   return (
     <div className="relative w-full h-full">
@@ -154,7 +162,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
           size="icon"
           className="bg-white hover:bg-gray-100"
           onClick={() => setIsSatelliteView(!isSatelliteView)}
-          disabled={!isMapReady}
+          disabled={!isMapReady || isStyleLoading}
         >
           {isSatelliteView ? <MapIcon /> : <Satellite />}
         </Button>
