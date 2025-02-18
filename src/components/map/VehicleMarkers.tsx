@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
 
 interface VehicleMarkersProps {
   map: mapboxgl.Map | null;
@@ -10,9 +11,10 @@ interface VehicleMarkersProps {
 
 export const VehicleMarkers = ({ map }: VehicleMarkersProps) => {
   const markersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
+  const { toast } = useToast();
 
   // Fetch nearby vehicles
-  const { data: nearbyVehicles } = useQuery({
+  const { data: nearbyVehicles, error } = useQuery({
     queryKey: ['nearby-vehicles'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -20,17 +22,30 @@ export const VehicleMarkers = ({ map }: VehicleMarkersProps) => {
         .select('*, profiles(username, license_plate)')
         .order('last_updated', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching vehicle locations:', error);
+        throw error;
+      }
       return data;
     },
     refetchInterval: 10000, // Refetch every 10 seconds
   });
 
+  // Show error toast if query fails
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch vehicle locations. Please try again later.",
+        variant: "destructive"
+      });
+    }
+  }, [error, toast]);
+
   // Update vehicle markers on the map
   useEffect(() => {
     if (!map || !nearbyVehicles) return;
 
-    // Wait for map to be loaded
     const setupMarkers = () => {
       // Remove old markers
       Object.values(markersRef.current).forEach(marker => marker.remove());
@@ -38,7 +53,7 @@ export const VehicleMarkers = ({ map }: VehicleMarkersProps) => {
 
       // Add new markers
       nearbyVehicles.forEach((vehicle) => {
-        if (!vehicle.profiles?.username && !vehicle.profiles?.license_plate) return;
+        if (!vehicle.longitude || !vehicle.latitude) return;
 
         try {
           const marker = new mapboxgl.Marker({
@@ -47,13 +62,13 @@ export const VehicleMarkers = ({ map }: VehicleMarkersProps) => {
           })
             .setLngLat([vehicle.longitude, vehicle.latitude]);
 
-          // Create popup
+          // Create popup with vehicle info
           const popup = new mapboxgl.Popup({ offset: 25 })
             .setHTML(
               `<div class="p-2">
-                ${vehicle.profiles?.username ? `<p>User: ${vehicle.profiles.username}</p>` : ''}
-                ${vehicle.profiles?.license_plate ? `<p>Plate: ${vehicle.profiles.license_plate}</p>` : ''}
-                <p>Last seen: ${new Date(vehicle.last_updated).toLocaleTimeString()}</p>
+                ${vehicle.profiles?.username ? `<p class="font-medium">User: ${vehicle.profiles.username}</p>` : ''}
+                ${vehicle.profiles?.license_plate ? `<p class="text-sm text-muted-foreground">Plate: ${vehicle.profiles.license_plate}</p>` : ''}
+                <p class="text-xs text-muted-foreground mt-1">Last seen: ${new Date(vehicle.last_updated).toLocaleTimeString()}</p>
               </div>`
             );
 
