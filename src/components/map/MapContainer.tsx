@@ -1,5 +1,5 @@
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Map as MapIcon, Satellite } from 'lucide-react';
@@ -14,7 +14,6 @@ interface MapContainerProps {
 export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const styleLoadListener = useRef<(() => void) | null>(null);
   const { toast } = useToast();
   const [isSatelliteView, setIsSatelliteView] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
@@ -32,17 +31,6 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
     });
   };
 
-  const setupMapStyle = useCallback((mapInstance: mapboxgl.Map) => {
-    mapInstance.setFog({
-      color: 'rgb(255, 255, 255)',
-      'high-color': 'rgb(200, 200, 225)',
-      'horizon-blend': 0.2,
-    });
-    
-    setIsMapReady(true);
-    onMapInitialized(mapInstance);
-  }, [onMapInitialized]);
-
   // Initialize map
   useEffect(() => {
     if (!mapContainer.current || !mapboxToken || map.current) return;
@@ -52,15 +40,29 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
       
       const newMap = new mapboxgl.Map({
         container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/light-v11',
+        style: isSatelliteView ? 'mapbox://styles/mapbox/satellite-v9' : 'mapbox://styles/mapbox/light-v11',
         projection: 'globe',
         zoom: 1.5,
         center: [30, 15],
         pitch: 45,
-        preserveDrawingBuffer: true,
+        fadeDuration: 0,
+        localFontFamily: "'Satoshi', sans-serif",
       });
 
       map.current = newMap;
+
+      const setupMap = () => {
+        if (!newMap) return;
+
+        newMap.setFog({
+          color: 'rgb(255, 255, 255)',
+          'high-color': 'rgb(200, 200, 225)',
+          'horizon-blend': 0.2,
+        });
+
+        setIsMapReady(true);
+        onMapInitialized(newMap);
+      };
 
       newMap.addControl(
         new mapboxgl.NavigationControl({
@@ -71,17 +73,13 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
 
       newMap.scrollZoom.disable();
 
-      // Handle initial load
       if (newMap.loaded()) {
-        setupMapStyle(newMap);
+        setupMap();
       } else {
-        newMap.once('load', () => setupMapStyle(newMap));
+        newMap.once('load', setupMap);
       }
 
       return () => {
-        if (styleLoadListener.current) {
-          newMap.off('style.load', styleLoadListener.current);
-        }
         newMap.remove();
         map.current = null;
       };
@@ -95,34 +93,21 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
       localStorage.removeItem('mapbox_token');
       setMapboxToken('');
     }
-  }, [mapboxToken, setupMapStyle]);
+  }, [mapboxToken, onMapInitialized]);
 
   // Handle style changes
   useEffect(() => {
-    if (!map.current || !isMapReady) return;
-
     const currentMap = map.current;
-    const newStyle = isSatelliteView 
+    if (!currentMap || !isMapReady) return;
+
+    const style = isSatelliteView 
       ? 'mapbox://styles/mapbox/satellite-v9'
       : 'mapbox://styles/mapbox/light-v11';
 
-    if (styleLoadListener.current) {
-      currentMap.off('style.load', styleLoadListener.current);
+    if (currentMap.getStyle().sprite !== style) {
+      currentMap.setStyle(style, { diff: false });
     }
-
-    styleLoadListener.current = () => {
-      setupMapStyle(currentMap);
-    };
-
-    currentMap.on('style.load', styleLoadListener.current);
-    currentMap.setStyle(newStyle);
-
-    return () => {
-      if (styleLoadListener.current) {
-        currentMap.off('style.load', styleLoadListener.current);
-      }
-    };
-  }, [isSatelliteView, isMapReady, setupMapStyle]);
+  }, [isSatelliteView, isMapReady]);
 
   return (
     <div className="relative w-full h-full">
