@@ -73,11 +73,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
 
       newMap.scrollZoom.disable();
 
-      if (newMap.loaded()) {
-        setupMap();
-      } else {
-        newMap.once('load', setupMap);
-      }
+      newMap.once('load', setupMap);
 
       return () => {
         newMap.remove();
@@ -104,7 +100,16 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
       ? 'mapbox://styles/mapbox/satellite-v9'
       : 'mapbox://styles/mapbox/light-v11';
 
-    if (currentMap.getStyle().sprite !== style) {
+    const currentStyle = currentMap.getStyle();
+    if (currentStyle && currentStyle.sprite !== style) {
+      currentMap.once('style.load', () => {
+        currentMap.setFog({
+          color: 'rgb(255, 255, 255)',
+          'high-color': 'rgb(200, 200, 225)',
+          'horizon-blend': 0.2,
+        });
+      });
+
       currentMap.setStyle(style, {
         localFontFamily: "'Satoshi', sans-serif",
         localIdeographFontFamily: "'Satoshi', sans-serif",
