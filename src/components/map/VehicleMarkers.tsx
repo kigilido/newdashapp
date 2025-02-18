@@ -30,33 +30,54 @@ export const VehicleMarkers = ({ map }: VehicleMarkersProps) => {
   useEffect(() => {
     if (!map || !nearbyVehicles) return;
 
-    // Remove old markers
-    Object.values(markersRef.current).forEach(marker => marker.remove());
-    markersRef.current = {};
+    // Wait for map to be loaded
+    const setupMarkers = () => {
+      // Remove old markers
+      Object.values(markersRef.current).forEach(marker => marker.remove());
+      markersRef.current = {};
 
-    // Add new markers
-    nearbyVehicles.forEach((vehicle) => {
-      if (!vehicle.profiles?.username && !vehicle.profiles?.license_plate) return;
+      // Add new markers
+      nearbyVehicles.forEach((vehicle) => {
+        if (!vehicle.profiles?.username && !vehicle.profiles?.license_plate) return;
 
-      const marker = new mapboxgl.Marker({
-        color: '#7c3aed',
-        scale: 0.8
-      })
-        .setLngLat([vehicle.longitude, vehicle.latitude])
-        .setPopup(
-          new mapboxgl.Popup({ offset: 25 })
+        try {
+          const marker = new mapboxgl.Marker({
+            color: '#7c3aed',
+            scale: 0.8
+          })
+            .setLngLat([vehicle.longitude, vehicle.latitude]);
+
+          // Create popup
+          const popup = new mapboxgl.Popup({ offset: 25 })
             .setHTML(
               `<div class="p-2">
                 ${vehicle.profiles?.username ? `<p>User: ${vehicle.profiles.username}</p>` : ''}
                 ${vehicle.profiles?.license_plate ? `<p>Plate: ${vehicle.profiles.license_plate}</p>` : ''}
                 <p>Last seen: ${new Date(vehicle.last_updated).toLocaleTimeString()}</p>
               </div>`
-            )
-        )
-        .addTo(map);
+            );
 
-      markersRef.current[vehicle.user_id] = marker;
-    });
+          // Only add marker and popup if map is loaded
+          if (map.loaded()) {
+            marker.setPopup(popup).addTo(map);
+            markersRef.current[vehicle.user_id] = marker;
+          }
+        } catch (error) {
+          console.error('Error adding marker:', error);
+        }
+      });
+    };
+
+    if (map.loaded()) {
+      setupMarkers();
+    } else {
+      map.once('load', setupMarkers);
+    }
+
+    return () => {
+      Object.values(markersRef.current).forEach(marker => marker.remove());
+      markersRef.current = {};
+    };
   }, [nearbyVehicles, map]);
 
   return null;
