@@ -19,12 +19,20 @@ serve(async (req) => {
       throw new Error('MAPBOX_PUBLIC_TOKEN is not set')
     }
 
+    // Verify that it's a valid Mapbox token (should start with 'pk.')
+    if (!token.startsWith('pk.')) {
+      throw new Error('Invalid Mapbox public token format')
+    }
+
     console.log('Successfully retrieved Mapbox token')
 
     return new Response(
       JSON.stringify({ token }),
       { 
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { 
+          ...corsHeaders, 
+          "Content-Type": "application/json" 
+        },
         status: 200 
       },
     )
@@ -34,7 +42,10 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { 
+          ...corsHeaders, 
+          "Content-Type": "application/json" 
+        },
         status: 500
       },
     )
