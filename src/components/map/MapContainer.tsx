@@ -54,11 +54,6 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         .setLngLat([longitude, latitude])
         .setHTML('<div class="text-sm font-medium">Your location</div>')
         .addTo(map.current);
-
-      toast({
-        title: "Location Updated",
-        description: "Your current location has been marked on the map.",
-      });
     } catch (error) {
       console.error('Error adding location marker:', error);
       toast({
@@ -74,88 +69,84 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
       if (!mapContainer.current || isInitialized.current) return;
 
       try {
-        const { data, error } = await supabase.functions.invoke('get-mapbox-token');
+        // Get Mapbox token from Supabase
+        const { data: tokenData, error: tokenError } = await supabase.functions.invoke('get-mapbox-token');
         
-        if (error || !data?.token) {
+        if (tokenError || !tokenData?.token) {
+          console.error('Failed to get Mapbox token:', tokenError);
           throw new Error('Failed to get Mapbox token');
         }
 
-        // Set the access token
-        mapboxgl.accessToken = data.token;
-        console.log('Mapbox token set:', !!data.token);
+        mapboxgl.accessToken = tokenData.token;
+        console.log('Mapbox token retrieved successfully');
 
-        const createMap = (longitude: number, latitude: number, zoom: number) => {
-          if (!mapContainer.current) return;
-          
-          console.log('Creating map with coordinates:', { longitude, latitude, zoom });
-          
-          const mapInstance = new mapboxgl.Map({
-            container: mapContainer.current,
-            style: 'mapbox://styles/mapbox/streets-v12',
-            center: [longitude, latitude],
-            zoom,
-            pitch: 0,
-            bearing: 0
-          });
-
-          // Wait for map to be loaded
-          mapInstance.on('load', () => {
-            console.log('Map loaded successfully');
-            map.current = mapInstance;
-            setIsMapReady(true);
-            isInitialized.current = true;
-            onMapInitialized(mapInstance);
-            
-            // Add location marker after map is loaded
-            addLocationMarker(longitude, latitude);
-          });
-
-          // Add navigation controls
-          const navControl = new mapboxgl.NavigationControl({
-            visualizePitch: true,
-          });
-          mapInstance.addControl(navControl, 'top-right');
-
-          // Handle map load errors
-          mapInstance.on('error', (e) => {
-            console.error('Map load error:', e);
-            toast({
-              title: "Map Error",
-              description: "There was an error loading the map. Please try refreshing the page.",
-              variant: "destructive"
-            });
-          });
-
-          return mapInstance;
+        // Default map location
+        const defaultLocation = {
+          longitude: -74.5,
+          latitude: 40,
+          zoom: 9
         };
 
-        if ('geolocation' in navigator) {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              console.log('Got user position:', position.coords);
-              const { latitude, longitude } = position.coords;
-              createMap(longitude, latitude, 14);
-            },
-            (error) => {
-              console.error('Geolocation error:', error);
-              toast({
-                title: "Location Access Denied",
-                description: "Using default map location. Please enable location access for better experience.",
-                variant: "destructive"
-              });
-              createMap(30, 15, 2);
-            }
-          );
-        } else {
-          console.log('Geolocation not supported, using default location');
-          createMap(30, 15, 2);
-        }
+        // Create map instance
+        const mapInstance = new mapboxgl.Map({
+          container: mapContainer.current,
+          style: 'mapbox://styles/mapbox/streets-v12',
+          center: [defaultLocation.longitude, defaultLocation.latitude],
+          zoom: defaultLocation.zoom,
+          cooperativeGestures: true
+        });
+
+        // Add navigation control
+        mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+        // Wait for map to load
+        mapInstance.on('load', () => {
+          console.log('Map loaded successfully');
+          map.current = mapInstance;
+          setIsMapReady(true);
+          isInitialized.current = true;
+          onMapInitialized(mapInstance);
+
+          // Get user location after map is loaded
+          if ('geolocation' in navigator) {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const { latitude, longitude } = position.coords;
+                mapInstance.flyTo({
+                  center: [longitude, latitude],
+                  zoom: 14,
+                  essential: true
+                });
+                addLocationMarker(longitude, latitude);
+              },
+              (error) => {
+                console.error('Geolocation error:', error);
+                toast({
+                  title: "Location Access Denied",
+                  description: "Using default map location. Please enable location access for better experience.",
+                  variant: "destructive"
+                });
+              }
+            );
+          }
+        });
+
+        // Handle map errors
+        mapInstance.on('error', (e) => {
+          console.error('Map error:', e);
+          toast({
+            title: "Map Error",
+            description: "There was an error loading the map. Please try refreshing the page.",
+            variant: "destructive"
+          });
+        });
+
       } catch (error) {
         console.error('Error initializing map:', error);
         toast({
           title: "Map Error",
           description: "Failed to initialize the map. Please try again later.",
-          variant: "destructive",
+          variant: "destructive"
         });
       }
     };
