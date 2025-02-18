@@ -145,35 +145,7 @@ export const ContactsList = ({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        {isAddingContact ? (
-          <div className="flex flex-col gap-2 w-full">
-            <Input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter username..."
-              className="flex-1"
-            />
-            <div className="flex gap-2">
-              <Button onClick={handleAddContact} className="flex-1">Add</Button>
-              <Button variant="ghost" onClick={() => {
-                setIsAddingContact(false);
-                setUsername("");
-              }}>Cancel</Button>
-            </div>
-          </div>
-        ) : (
-          <Button
-            onClick={() => setIsAddingContact(true)}
-            variant="outline"
-            className="flex-1 flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add Contact
-          </Button>
-        )}
-      </div>
+    <div className="relative h-full">
       <div className="space-y-2">
         {contacts.map((contact) => (
           <Card
@@ -191,6 +163,41 @@ export const ContactsList = ({
           </Card>
         ))}
       </div>
+
+      {isAddingContact ? (
+        <div className="fixed bottom-20 right-4 left-4 bg-white p-4 rounded-lg shadow-lg z-20">
+          <div className="flex flex-col gap-2">
+            <Input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter username..."
+              className="flex-1"
+            />
+            <div className="flex gap-2">
+              <Button onClick={handleAddContact} className="flex-1">
+                Add
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setIsAddingContact(false);
+                  setUsername("");
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <Button
+          onClick={() => setIsAddingContact(true)}
+          size="icon"
+          className="fixed bottom-20 right-4 h-14 w-14 rounded-full shadow-lg z-20"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      )}
     </div>
   );
 };

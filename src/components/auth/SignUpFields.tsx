@@ -25,6 +25,7 @@ export const SignUpFields = ({
         onChange={(e) => setUsername(e.target.value)}
         disabled={isLoading}
         required
+        className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
       />
       <Input
         type="text"
@@ -33,6 +34,7 @@ export const SignUpFields = ({
         onChange={(e) => setLicensePlate(e.target.value.toUpperCase())}
         disabled={isLoading}
         required
+        className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
       />
     </>
   );
