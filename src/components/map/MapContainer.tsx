@@ -146,7 +146,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         console.error('Error initializing map:', error);
         toast({
           title: "Map Error",
-          description: "Failed to initialize the map. Please try again later.",
+          description: "Failed to initialize map. Please try again later.",
           variant: "destructive"
         });
       }
@@ -181,7 +181,6 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
           {isSatelliteView ? <MapIcon /> : <Satellite />}
         </Button>
       </div>
-      <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent to-background/10" />
     </div>
   );
 };
