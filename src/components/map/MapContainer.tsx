@@ -47,13 +47,17 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         .setLngLat([longitude, latitude])
         .addTo(map.current);
 
-      new mapboxgl.Popup({
+      // Add popup for user's location
+      const popup = new mapboxgl.Popup({
         closeButton: false,
         closeOnClick: false
       })
         .setLngLat([longitude, latitude])
         .setHTML('<div class="text-sm font-medium">Your location</div>')
         .addTo(map.current);
+
+      // Ensure popup stays open
+      locationMarker.current.setPopup(popup);
     } catch (error) {
       console.error('Error adding location marker:', error);
       toast({
@@ -69,30 +73,27 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
       if (!mapContainer.current || isInitialized.current) return;
 
       try {
-        // Get Mapbox token from Supabase
-        const { data: tokenData, error: tokenError } = await supabase.functions.invoke('get-mapbox-token');
+        // Get the secret directly from Supabase secrets
+        const { data: { token }, error } = await supabase.functions.invoke('get-mapbox-token');
         
-        if (tokenError || !tokenData?.token) {
-          console.error('Failed to get Mapbox token:', tokenError);
-          throw new Error('Failed to get Mapbox token');
+        if (error || !token) {
+          console.error('Failed to get Mapbox token:', error);
+          toast({
+            title: "Map Error",
+            description: "Failed to initialize map. Please check your Mapbox configuration.",
+            variant: "destructive"
+          });
+          return;
         }
 
-        mapboxgl.accessToken = tokenData.token;
-        console.log('Mapbox token retrieved successfully');
-
-        // Default map location
-        const defaultLocation = {
-          longitude: -74.5,
-          latitude: 40,
-          zoom: 9
-        };
+        mapboxgl.accessToken = token;
 
         // Create map instance
         const mapInstance = new mapboxgl.Map({
           container: mapContainer.current,
           style: 'mapbox://styles/mapbox/streets-v12',
-          center: [defaultLocation.longitude, defaultLocation.latitude],
-          zoom: defaultLocation.zoom,
+          center: [-74.5, 40],
+          zoom: 9,
           cooperativeGestures: true
         });
 
@@ -164,7 +165,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         isInitialized.current = false;
       }
     };
-  }, [onMapInitialized]);
+  }, [onMapInitialized, toast]);
 
   return (
     <div className="relative w-full h-full">

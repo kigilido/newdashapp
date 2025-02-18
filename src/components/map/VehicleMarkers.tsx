@@ -29,11 +29,14 @@ export const VehicleMarkers = ({ map }: VehicleMarkersProps) => {
       return data;
     },
     refetchInterval: 10000, // Refetch every 10 seconds
+    retry: 3, // Retry failed requests up to 3 times
+    staleTime: 5000, // Consider data stale after 5 seconds
   });
 
   // Show error toast if query fails
   useEffect(() => {
     if (error) {
+      console.error('Vehicle locations query error:', error);
       toast({
         title: "Error",
         description: "Failed to fetch vehicle locations. Please try again later.",
@@ -53,7 +56,10 @@ export const VehicleMarkers = ({ map }: VehicleMarkersProps) => {
 
       // Add new markers
       nearbyVehicles.forEach((vehicle) => {
-        if (!vehicle.longitude || !vehicle.latitude) return;
+        if (!vehicle.longitude || !vehicle.latitude) {
+          console.warn('Vehicle missing coordinates:', vehicle);
+          return;
+        }
 
         try {
           const marker = new mapboxgl.Marker({
