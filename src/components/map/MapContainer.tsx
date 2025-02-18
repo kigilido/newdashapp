@@ -105,7 +105,11 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
       : 'mapbox://styles/mapbox/light-v11';
 
     if (currentMap.getStyle().sprite !== style) {
-      currentMap.setStyle(style, { diff: false });
+      currentMap.setStyle(style, {
+        localFontFamily: "'Satoshi', sans-serif",
+        localIdeographFontFamily: "'Satoshi', sans-serif",
+        diff: false
+      });
     }
   }, [isSatelliteView, isMapReady]);
 
