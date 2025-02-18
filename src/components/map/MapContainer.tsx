@@ -17,6 +17,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   const { toast } = useToast();
   const [isSatelliteView, setIsSatelliteView] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
+  const [currentStyle, setCurrentStyle] = useState<string>('mapbox://styles/mapbox/light-v11');
   const [mapboxToken, setMapboxToken] = useState(() => {
     const token = localStorage.getItem('mapbox_token');
     return token || '';
@@ -38,9 +39,13 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
     try {
       mapboxgl.accessToken = mapboxToken;
       
+      const initialStyle = isSatelliteView 
+        ? 'mapbox://styles/mapbox/satellite-v9' 
+        : 'mapbox://styles/mapbox/light-v11';
+      
       const newMap = new mapboxgl.Map({
         container: mapContainer.current,
-        style: isSatelliteView ? 'mapbox://styles/mapbox/satellite-v9' : 'mapbox://styles/mapbox/light-v11',
+        style: initialStyle,
         projection: 'globe',
         zoom: 1.5,
         center: [30, 15],
@@ -50,6 +55,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
       });
 
       map.current = newMap;
+      setCurrentStyle(initialStyle);
 
       const setupMap = () => {
         if (!newMap) return;
@@ -72,7 +78,6 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
       );
 
       newMap.scrollZoom.disable();
-
       newMap.once('load', setupMap);
 
       return () => {
@@ -96,12 +101,11 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
     const currentMap = map.current;
     if (!currentMap || !isMapReady) return;
 
-    const style = isSatelliteView 
+    const newStyle = isSatelliteView 
       ? 'mapbox://styles/mapbox/satellite-v9'
       : 'mapbox://styles/mapbox/light-v11';
 
-    const currentStyle = currentMap.getStyle();
-    if (currentStyle && currentStyle.sprite !== style) {
+    if (newStyle !== currentStyle) {
       currentMap.once('style.load', () => {
         currentMap.setFog({
           color: 'rgb(255, 255, 255)',
@@ -110,13 +114,15 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         });
       });
 
-      currentMap.setStyle(style, {
+      currentMap.setStyle(newStyle, {
         localFontFamily: "'Satoshi', sans-serif",
         localIdeographFontFamily: "'Satoshi', sans-serif",
         diff: false
       });
+
+      setCurrentStyle(newStyle);
     }
-  }, [isSatelliteView, isMapReady]);
+  }, [isSatelliteView, isMapReady, currentStyle]);
 
   return (
     <div className="relative w-full h-full">
