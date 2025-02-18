@@ -34,13 +34,11 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   const addLocationMarker = (longitude: number, latitude: number) => {
     if (!map.current) return;
 
-    // Remove existing marker if it exists
     if (locationMarker.current) {
       locationMarker.current.remove();
     }
 
     try {
-      // Create a new marker
       locationMarker.current = new mapboxgl.Marker({
         color: '#7c3aed',
         scale: 0.8,
@@ -49,7 +47,6 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         .setLngLat([longitude, latitude])
         .addTo(map.current);
 
-      // Add a popup
       new mapboxgl.Popup({
         closeButton: false,
         closeOnClick: false
@@ -83,10 +80,14 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
           throw new Error('Failed to get Mapbox token');
         }
 
+        // Set the access token
         mapboxgl.accessToken = data.token;
-        
+        console.log('Mapbox token set:', !!data.token);
+
         const createMap = (longitude: number, latitude: number, zoom: number) => {
           if (!mapContainer.current) return;
+          
+          console.log('Creating map with coordinates:', { longitude, latitude, zoom });
           
           const mapInstance = new mapboxgl.Map({
             container: mapContainer.current,
@@ -97,7 +98,17 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
             bearing: 0
           });
 
-          map.current = mapInstance;
+          // Wait for map to be loaded
+          mapInstance.on('load', () => {
+            console.log('Map loaded successfully');
+            map.current = mapInstance;
+            setIsMapReady(true);
+            isInitialized.current = true;
+            onMapInitialized(mapInstance);
+            
+            // Add location marker after map is loaded
+            addLocationMarker(longitude, latitude);
+          });
 
           // Add navigation controls
           const navControl = new mapboxgl.NavigationControl({
@@ -105,18 +116,14 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
           });
           mapInstance.addControl(navControl, 'top-right');
 
-          mapInstance.once('load', () => {
-            // Add location marker after map is loaded and fly to location
-            addLocationMarker(longitude, latitude);
-            mapInstance.flyTo({
-              center: [longitude, latitude],
-              zoom: 14,
-              essential: true
+          // Handle map load errors
+          mapInstance.on('error', (e) => {
+            console.error('Map load error:', e);
+            toast({
+              title: "Map Error",
+              description: "There was an error loading the map. Please try refreshing the page.",
+              variant: "destructive"
             });
-            
-            setIsMapReady(true);
-            isInitialized.current = true;
-            onMapInitialized(mapInstance);
           });
 
           return mapInstance;
@@ -125,6 +132,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         if ('geolocation' in navigator) {
           navigator.geolocation.getCurrentPosition(
             (position) => {
+              console.log('Got user position:', position.coords);
               const { latitude, longitude } = position.coords;
               createMap(longitude, latitude, 14);
             },
@@ -139,6 +147,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
             }
           );
         } else {
+          console.log('Geolocation not supported, using default location');
           createMap(30, 15, 2);
         }
       } catch (error) {
