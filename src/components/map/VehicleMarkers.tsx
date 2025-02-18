@@ -1,9 +1,8 @@
 
 import { useEffect, useRef } from 'react';
+import mapboxgl from 'mapbox-gl';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import mapboxgl from 'mapbox-gl';
-import { useToast } from '@/hooks/use-toast';
 
 interface VehicleMarkersProps {
   map: mapboxgl.Map | null;
@@ -11,103 +10,53 @@ interface VehicleMarkersProps {
 
 export const VehicleMarkers = ({ map }: VehicleMarkersProps) => {
   const markersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
-  const { toast } = useToast();
 
+  // Fetch nearby vehicles
   const { data: nearbyVehicles } = useQuery({
     queryKey: ['nearby-vehicles'],
     queryFn: async () => {
-      const { data: session } = await supabase.auth.getSession();
-      
-      if (!session?.session) {
-        toast({
-          title: "Error",
-          description: "Authentication required to fetch vehicle locations",
-          variant: "destructive",
-        });
-        throw new Error('Authentication required');
-      }
-
       const { data, error } = await supabase
         .from('vehicle_locations')
         .select('*, profiles(username, license_plate)')
         .order('last_updated', { ascending: false });
 
-      if (error) {
-        console.error('Supabase error:', error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch vehicle locations",
-          variant: "destructive",
-        });
-        throw error;
-      }
-
-      if (!data) {
-        return [];
-      }
-
+      if (error) throw error;
       return data;
     },
-    refetchInterval: 10000,
-    retry: 3,
+    refetchInterval: 10000, // Refetch every 10 seconds
   });
 
+  // Update vehicle markers on the map
   useEffect(() => {
     if (!map || !nearbyVehicles) return;
 
-    if (!map.loaded()) {
-      map.once('load', () => {
-        updateMarkers();
-      });
-      return;
-    }
+    // Remove old markers
+    Object.values(markersRef.current).forEach(marker => marker.remove());
+    markersRef.current = {};
 
-    updateMarkers();
+    // Add new markers
+    nearbyVehicles.forEach((vehicle) => {
+      if (!vehicle.profiles?.username && !vehicle.profiles?.license_plate) return;
 
-    function updateMarkers() {
-      try {
-        // Remove old markers
-        Object.values(markersRef.current).forEach(marker => marker.remove());
-        markersRef.current = {};
+      const marker = new mapboxgl.Marker({
+        color: '#7c3aed',
+        scale: 0.8
+      })
+        .setLngLat([vehicle.longitude, vehicle.latitude])
+        .setPopup(
+          new mapboxgl.Popup({ offset: 25 })
+            .setHTML(
+              `<div class="p-2">
+                ${vehicle.profiles?.username ? `<p>User: ${vehicle.profiles.username}</p>` : ''}
+                ${vehicle.profiles?.license_plate ? `<p>Plate: ${vehicle.profiles.license_plate}</p>` : ''}
+                <p>Last seen: ${new Date(vehicle.last_updated).toLocaleTimeString()}</p>
+              </div>`
+            )
+        )
+        .addTo(map);
 
-        // Add new markers
-        nearbyVehicles.forEach((vehicle) => {
-          if (!vehicle.profiles?.username && !vehicle.profiles?.license_plate) return;
-
-          const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
-            <div class="p-2">
-              ${vehicle.profiles?.username ? `<p>User: ${vehicle.profiles.username}</p>` : ''}
-              ${vehicle.profiles?.license_plate ? `<p>Plate: ${vehicle.profiles.license_plate}</p>` : ''}
-              <p>Last seen: ${new Date(vehicle.last_updated).toLocaleTimeString()}</p>
-            </div>
-          `);
-
-          try {
-            const marker = new mapboxgl.Marker()
-              .setLngLat([vehicle.longitude, vehicle.latitude])
-              .setPopup(popup)
-              .addTo(map);
-
-            markersRef.current[vehicle.user_id] = marker;
-          } catch (error) {
-            console.error('Error adding marker:', error);
-          }
-        });
-      } catch (error) {
-        console.error('Error updating markers:', error);
-      }
-    }
-
-    return () => {
-      Object.values(markersRef.current).forEach(marker => {
-        try {
-          marker.remove();
-        } catch (error) {
-          console.error('Error removing marker:', error);
-        }
-      });
-      markersRef.current = {};
-    };
+      markersRef.current[vehicle.user_id] = marker;
+    });
   }, [nearbyVehicles, map]);
 
   return null;

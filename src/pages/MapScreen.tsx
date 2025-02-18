@@ -1,12 +1,12 @@
 
 import { useState } from 'react';
+import mapboxgl from 'mapbox-gl';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { MapContainer } from '@/components/map/MapContainer';
 import { LocationSearch } from '@/components/map/LocationSearch';
 import { VehicleMarkers } from '@/components/map/VehicleMarkers';
-import mapboxgl from 'mapbox-gl';
 
 const MapScreen = () => {
   const [map, setMap] = useState<mapboxgl.Map | null>(null);
@@ -34,8 +34,12 @@ const MapScreen = () => {
     if (!map || !searchQuery) return;
 
     try {
+      const { data: { token } } = await supabase.functions.invoke('get-mapbox-token');
+      
       const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?access_token=${mapboxgl.accessToken}`
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+          searchQuery
+        )}.json?access_token=${token}`
       );
       
       const data = await response.json();
@@ -45,7 +49,9 @@ const MapScreen = () => {
         
         map.flyTo({
           center: [lng, lat],
-          zoom: 12
+          zoom: 12,
+          duration: 2000,
+          essential: true
         });
       }
     } catch (error) {
@@ -67,9 +73,12 @@ const MapScreen = () => {
           
           map.flyTo({
             center: [longitude, latitude],
-            zoom: 14
+            zoom: 14,
+            duration: 2000,
+            essential: true
           });
 
+          // Update user's location in the database
           await updateUserLocation(latitude, longitude);
 
           toast({
