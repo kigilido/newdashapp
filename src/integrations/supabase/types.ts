@@ -220,6 +220,33 @@ export type Database = {
         }
         Relationships: []
       }
+      license_plate_results: {
+        Row: {
+          created_at: string
+          id: string
+          license_plate: string
+          raw_text: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          license_plate: string
+          raw_text?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          license_plate?: string
+          raw_text?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       message_attachments: {
         Row: {
           content_type: string

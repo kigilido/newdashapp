@@ -123,10 +123,65 @@ const ScanScreen = () => {
     }
   };
 
-  const performOCR = async (imageDataUrl: string): Promise<string> => {
+  const pollForResults = async (maxAttempts = 30, interval = 2000) => {
+    let attempts = 0;
+    
+    const poll = async () => {
+      if (attempts >= maxAttempts) {
+        setIsProcessing(false);
+        toast({
+          title: "Timeout",
+          description: "License plate detection is taking too long. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data: results, error } = await supabase
+        .from('license_plate_results')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.error('Polling error:', error);
+        attempts++;
+        setTimeout(poll, interval);
+        return;
+      }
+
+      if (results && results.status === 'completed') {
+        setIsProcessing(false);
+        if (results.license_plate === 'NO_PLATE_FOUND') {
+          toast({
+            title: "No License Plate Found",
+            description: "Please take another photo where the license plate is clearly visible.",
+            variant: "destructive",
+          });
+          if (retryCount >= 2) {
+            setRetryCount(0);
+            setPhoto(null);
+          }
+        } else {
+          setDetectedPlate(results.license_plate);
+          setRawText(results.raw_text);
+          setRetryCount(0);
+        }
+        return;
+      }
+
+      attempts++;
+      setTimeout(poll, interval);
+    };
+
+    await poll();
+  };
+
+  const performOCR = async (imageDataUrl: string) => {
     try {
       console.log('Sending image for OCR processing... Attempt:', retryCount + 1);
-      const { data, error } = await supabase.functions.invoke('process-license-plate', {
+      const { error } = await supabase.functions.invoke('process-license-plate', {
         body: { image: imageDataUrl }
       });
 
@@ -134,30 +189,13 @@ const ScanScreen = () => {
         console.error('Supabase function error:', error);
         throw error;
       }
-      
-      if (!data) {
-        throw new Error('No data returned from OCR');
-      }
 
-      if (data.error) {
-        console.error('OCR processing error:', data.error);
-        throw new Error(data.error);
-      }
-
-      console.log('OCR response:', data);
-      setRawText(data.rawText);
+      // Start polling for results
+      await pollForResults();
       
-      if (data.licensePlate === 'NO_PLATE_FOUND' && retryCount < 2) {
-        throw new Error('NO_PLATE_FOUND');
-      }
-      
-      return data.licensePlate;
     } catch (error) {
-      if (error.message === 'NO_PLATE_FOUND' && retryCount < 2) {
-        setRetryCount(prev => prev + 1);
-        throw error;
-      }
       console.error('OCR error:', error);
+      setIsProcessing(false);
       toast({
         title: "Processing Error",
         description: error.message || "Failed to process the image. Please try again.",
@@ -193,30 +231,8 @@ const ScanScreen = () => {
       setDetectedPlate(null);
       setRawText(null);
       
-      try {
-        const licensePlate = await performOCR(image.dataUrl);
-        
-        if (licensePlate === 'NO_PLATE_FOUND') {
-          toast({
-            title: "No License Plate Found",
-            description: "Please take another photo where the license plate is clearly visible.",
-            variant: "destructive",
-          });
-          if (retryCount >= 2) {
-            setRetryCount(0);
-            setPhoto(null);
-          }
-        } else {
-          setDetectedPlate(licensePlate);
-          setRetryCount(0);
-        }
-      } catch (error) {
-        console.error('OCR processing error:', error);
-        if (retryCount >= 2) {
-          setRetryCount(0);
-          setPhoto(null);
-        }
-      }
+      await performOCR(image.dataUrl);
+      
     } catch (error) {
       console.error('Camera error:', error);
       toast({
@@ -224,7 +240,6 @@ const ScanScreen = () => {
         description: "There was an error accessing the camera. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setIsProcessing(false);
     }
   };
