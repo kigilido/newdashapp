@@ -9,6 +9,7 @@ import { LocationSearch } from '@/components/map/LocationSearch';
 import { VehicleMarkers } from '@/components/map/VehicleMarkers';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { MoreVertical } from 'lucide-react';
 
 const MapScreen = () => {
   const [map, setMap] = useState<mapboxgl.Map | null>(null);
@@ -133,16 +134,20 @@ const MapScreen = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
-      <h1 
-        className="text-2xl font-bold mb-4"
+      <div 
+        className="flex items-center gap-2 mb-4 cursor-pointer select-none"
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
         onTouchStart={handleMouseDown}
         onTouchEnd={handleMouseUp}
       >
-        Location
-      </h1>
+        <h1 className="text-2xl font-bold">Location</h1>
+        <div className="flex items-center text-muted-foreground text-sm">
+          <MoreVertical className="h-4 w-4" />
+          <span className="ml-1">(long press for options)</span>
+        </div>
+      </div>
       
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent>
