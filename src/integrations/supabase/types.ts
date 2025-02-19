@@ -518,6 +518,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      cleanup_old_vehicle_locations: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       create_backup_point: {
         Args: {
           p_description?: string
