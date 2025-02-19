@@ -97,7 +97,9 @@ serve(async (req) => {
         .update({
           license_plate: licensePlate,
           raw_text: rawText,
-          status: 'completed'
+          status: 'completed',
+          mindee_job_id: webhookData.job?.id,
+          mindee_document_id: webhookData.document?.id
         })
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
@@ -150,7 +152,7 @@ serve(async (req) => {
     console.log('Sending request to Mindee API...');
     console.log('Endpoint:', model.endpoint);
 
-    // Make initial async request
+    // Make initial async request to predict_async endpoint
     const response = await fetch(model.endpoint, {
       method: 'POST',
       headers: {
@@ -168,11 +170,27 @@ serve(async (req) => {
     const result = await response.json();
     console.log('Mindee API initial response:', result);
 
+    // Store the job_id and document_id in the database
+    const { error: insertError } = await supabaseClient
+      .from('license_plate_results')
+      .insert([{ 
+        license_plate: 'PROCESSING',
+        status: 'pending',
+        mindee_job_id: result.job?.id,
+        mindee_document_id: result.document?.id
+      }]);
+
+    if (insertError) {
+      console.error('Error creating result entry:', insertError);
+      throw insertError;
+    }
+
     return new Response(
       JSON.stringify({
         status: 'processing',
         message: 'Image is being processed. Results will be sent via webhook.',
-        job_id: result.job?.id || result.document?.id
+        job_id: result.job?.id,
+        document_id: result.document?.id
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
