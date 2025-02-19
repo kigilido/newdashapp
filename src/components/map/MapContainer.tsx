@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -18,6 +19,8 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   const [isSatelliteView, setIsSatelliteView] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
   const isInitialized = useRef(false);
+  const mapInitializationAttempts = useRef(0);
+  const MAX_INITIALIZATION_ATTEMPTS = 3;
 
   const toggleMapStyle = useCallback(() => {
     if (!map.current || !isMapReady) return;
@@ -33,11 +36,13 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   const addLocationMarker = useCallback((longitude: number, latitude: number) => {
     if (!map.current) return;
 
-    if (locationMarker.current) {
-      locationMarker.current.remove();
-    }
-
     try {
+      // Remove existing marker if it exists
+      if (locationMarker.current) {
+        locationMarker.current.remove();
+      }
+
+      // Create and add new marker
       locationMarker.current = new mapboxgl.Marker({
         color: '#7c3aed',
         scale: 0.8,
@@ -46,9 +51,11 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         .setLngLat([longitude, latitude])
         .addTo(map.current);
 
+      // Create and add popup
       const popup = new mapboxgl.Popup({
         closeButton: false,
-        closeOnClick: false
+        closeOnClick: false,
+        offset: 25
       })
         .setLngLat([longitude, latitude])
         .setHTML('<div class="text-sm font-medium">Your location</div>')
@@ -65,23 +72,58 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
     }
   }, [toast]);
 
+  const handleGeolocation = useCallback(() => {
+    if (!map.current) return;
+
+    return new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          resolve({ latitude, longitude });
+        },
+        (error) => {
+          console.error('Geolocation error:', error);
+          reject(error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        }
+      );
+    });
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
     
     const initializeMap = async () => {
+      // Prevent multiple initialization attempts
       if (!mapContainer.current || isInitialized.current) return;
 
+      // Check initialization attempts
+      if (mapInitializationAttempts.current >= MAX_INITIALIZATION_ATTEMPTS) {
+        console.error('Max map initialization attempts reached');
+        toast({
+          title: "Map Error",
+          description: "Failed to initialize map after multiple attempts. Please refresh the page.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      mapInitializationAttempts.current += 1;
+
       try {
+        // Clear the map container to prevent interactivity warnings
+        if (mapContainer.current) {
+          mapContainer.current.innerHTML = '';
+        }
+
         const { data: { token }, error } = await supabase.functions.invoke('get-mapbox-token');
         
         if (error || !token || !isMounted) {
-          console.error('Failed to get Mapbox token:', error);
-          toast({
-            title: "Map Error",
-            description: "Failed to initialize map. Please check your Mapbox configuration.",
-            variant: "destructive"
-          });
-          return;
+          throw new Error(error?.message || 'Failed to get Mapbox token');
         }
 
         mapboxgl.accessToken = token;
@@ -93,9 +135,15 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
           zoom: 9,
           cooperativeGestures: false,
           scrollZoom: true,
-          preserveDrawingBuffer: true
+          preserveDrawingBuffer: true,
+          attributionControl: false,
+          failIfMajorPerformanceCaveat: true
         });
 
+        // Add attribution control in a better position
+        mapInstance.addControl(new mapboxgl.AttributionControl(), 'bottom-left');
+
+        // Add navigation controls with all features enabled
         mapInstance.addControl(
           new mapboxgl.NavigationControl({
             showCompass: true,
@@ -105,58 +153,72 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
           'top-right'
         );
 
-        mapInstance.once('load', () => {
-          if (!isMounted) return;
-          
-          console.log('Map loaded successfully');
-          map.current = mapInstance;
-          setIsMapReady(true);
-          isInitialized.current = true;
-          onMapInitialized(mapInstance);
+        // Wait for map to load
+        await new Promise((resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error('Map load timeout'));
+          }, 10000); // 10 second timeout
 
-          if ('geolocation' in navigator) {
-            navigator.geolocation.getCurrentPosition(
-              (position) => {
-                if (!isMounted) return;
-                const { latitude, longitude } = position.coords;
-                mapInstance.flyTo({
-                  center: [longitude, latitude],
-                  zoom: 14,
-                  essential: true
-                });
-                addLocationMarker(longitude, latitude);
-              },
-              (error) => {
-                console.error('Geolocation error:', error);
-                if (!isMounted) return;
-                toast({
-                  title: "Location Access Denied",
-                  description: "Using default map location. Please enable location access for better experience.",
-                  variant: "destructive"
-                });
-              }
-            );
-          }
-        });
+          mapInstance.once('load', () => {
+            clearTimeout(timeoutId);
+            resolve(true);
+          });
 
-        mapInstance.on('error', (e) => {
-          if (!isMounted) return;
-          console.error('Map error:', e);
-          toast({
-            title: "Map Error",
-            description: "There was an error loading the map. Please try refreshing the page.",
-            variant: "destructive"
+          mapInstance.once('error', (e) => {
+            clearTimeout(timeoutId);
+            reject(e.error);
           });
         });
 
-      } catch (error) {
         if (!isMounted) return;
+
+        console.log('Map loaded successfully');
+        map.current = mapInstance;
+        setIsMapReady(true);
+        isInitialized.current = true;
+        onMapInitialized(mapInstance);
+
+        // Try to get user location
+        if ('geolocation' in navigator) {
+          try {
+            const { latitude, longitude } = await handleGeolocation();
+            mapInstance.flyTo({
+              center: [longitude, latitude],
+              zoom: 14,
+              essential: true
+            });
+            addLocationMarker(longitude, latitude);
+          } catch (error) {
+            console.warn('Geolocation error:', error);
+            toast({
+              title: "Location Access Denied",
+              description: "Using default map location. Please enable location access for better experience.",
+              variant: "destructive"
+            });
+          }
+        }
+
+      } catch (error) {
         console.error('Error initializing map:', error);
-        toast({
-          title: "Map Error",
-          description: "Failed to initialize map. Please try again later.",
-          variant: "destructive"
-        });
+        
+        if (isMounted) {
+          toast({
+            title: "Map Error",
+            description: `Failed to initialize map: ${error.message}`,
+            variant: "destructive"
+          });
+
+          // Clean up failed initialization
+          if (map.current) {
+            map.current.remove();
+            map.current = null;
+          }
+          setIsMapReady(false);
+          isInitialized.current = false;
+
+          // Retry initialization after a delay
+          setTimeout(initializeMap, 2000);
+        }
       }
     };
 
