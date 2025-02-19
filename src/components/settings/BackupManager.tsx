@@ -36,7 +36,7 @@ export const BackupManager = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('backup_points')
-        .select('*')
+        .select('id, created_at, description, backup_type, status')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -48,10 +48,13 @@ export const BackupManager = () => {
   const { mutate: createBackup, isPending: isCreatingBackup } = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase
-        .rpc('create_backup_point', {
-          p_description: 'Manual backup',
-          p_backup_type: 'manual'
-        });
+        .from('backup_points')
+        .insert([{
+          description: 'Manual backup',
+          backup_type: 'manual' as const,
+        }])
+        .select()
+        .single();
       
       if (error) throw error;
       return data;
@@ -76,9 +79,11 @@ export const BackupManager = () => {
   const { mutate: restoreBackup, isPending: isRestoring } = useMutation({
     mutationFn: async (backupId: string) => {
       const { data, error } = await supabase
-        .rpc('restore_from_backup', {
-          p_backup_point_id: backupId
-        });
+        .from('backup_points')
+        .update({ status: 'pending' })
+        .eq('id', backupId)
+        .select()
+        .single();
       
       if (error) throw error;
       return data;
@@ -87,8 +92,8 @@ export const BackupManager = () => {
       setShowRestoreDialog(false);
       setSelectedBackup(null);
       toast({
-        title: "Restore completed",
-        description: "Your application state has been restored successfully.",
+        title: "Restore initiated",
+        description: "Your application state is being restored.",
       });
       // Reload the page to reflect restored state
       window.location.reload();
@@ -157,7 +162,7 @@ export const BackupManager = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => handleRestore(backup)}
-                      disabled={isRestoring}
+                      disabled={isRestoring || backup.status === 'pending'}
                     >
                       <RotateCcw className="h-4 w-4 mr-1" />
                       Restore

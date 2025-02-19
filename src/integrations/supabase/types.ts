@@ -36,6 +36,68 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_data: {
+        Row: {
+          backup_point_id: string
+          created_at: string
+          data: Json
+          id: string
+          table_name: string
+        }
+        Insert: {
+          backup_point_id: string
+          created_at?: string
+          data: Json
+          id?: string
+          table_name: string
+        }
+        Update: {
+          backup_point_id?: string
+          created_at?: string
+          data?: Json
+          id?: string
+          table_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backup_data_backup_point_id_fkey"
+            columns: ["backup_point_id"]
+            isOneToOne: false
+            referencedRelation: "backup_points"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      backup_points: {
+        Row: {
+          backup_type: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          status: string
+        }
+        Insert: {
+          backup_type: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string
+        }
+        Update: {
+          backup_type?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string
+        }
+        Relationships: []
+      }
       contacts: {
         Row: {
           contact_user_id: string
@@ -456,9 +518,22 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      create_backup_point: {
+        Args: {
+          p_description?: string
+          p_backup_type?: string
+        }
+        Returns: string
+      }
       is_admin: {
         Args: {
           user_id: string
+        }
+        Returns: boolean
+      }
+      restore_from_backup: {
+        Args: {
+          p_backup_point_id: string
         }
         Returns: boolean
       }
