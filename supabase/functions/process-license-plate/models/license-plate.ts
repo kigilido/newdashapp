@@ -7,29 +7,27 @@ export interface MindeeModelConfig {
 }
 
 export const DEFAULT_MODEL: MindeeModelConfig = {
-  name: 'mindee/ocr',
-  version: '1.1',
-  endpoint: 'https://api.mindee.net/v1/products/mindee/ocr/v1/predict'
+  name: 'kigilido/license_plate',
+  version: '1.0',
+  endpoint: 'https://api.mindee.net/v1/products/kigilido/license_plate/v1/predict_async'
 };
 
 export const getLicensePlateModel = (): MindeeModelConfig => {
   const modelConfig = Deno.env.get('MINDEE_MODEL_CONFIG');
   
   if (!modelConfig) {
-    console.log('No custom model config found, using default model');
+    console.log('No custom model config found, using default model for kigilido/license_plate');
     return DEFAULT_MODEL;
   }
 
   try {
     const config = JSON.parse(modelConfig);
     
-    // Validate required fields
     if (!config.name || !config.version || !config.endpoint) {
       console.error('Invalid model config: missing required fields, using default model');
       return DEFAULT_MODEL;
     }
 
-    // Validate endpoint URL format
     if (!config.endpoint.startsWith('https://api.mindee.net/')) {
       console.error('Invalid endpoint URL format, using default model');
       return DEFAULT_MODEL;

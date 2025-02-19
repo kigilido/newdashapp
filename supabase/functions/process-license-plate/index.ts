@@ -15,21 +15,25 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
 interface MindeeResponse {
-  prediction: {
-    license_plate_number: {
-      value: string | null;
-    };
-    state: {
-      value: string | null;
-    };
-    vehicle_make: {
-      value: string | null;
-    };
-    vehicle_model: {
-      value: string | null;
-    };
-    vehicle_year: {
-      value: number | null;
+  document: {
+    id: string;
+    status: string;
+    prediction?: {
+      license_plate_number: {
+        value: string | null;
+      };
+      state: {
+        value: string | null;
+      };
+      vehicle_make: {
+        value: string | null;
+      };
+      vehicle_model: {
+        value: string | null;
+      };
+      vehicle_year: {
+        value: number | null;
+      };
     };
   };
 }
@@ -53,14 +57,13 @@ serve(async (req) => {
       let licensePlate = 'NO_PLATE_FOUND';
       let rawText = '';
 
-      if (webhookData.prediction?.license_plate_number?.value) {
-        licensePlate = webhookData.prediction.license_plate_number.value.toUpperCase();
-        // Combine all available vehicle information into raw text
+      if (webhookData.document?.prediction?.license_plate_number?.value) {
+        licensePlate = webhookData.document.prediction.license_plate_number.value.toUpperCase();
         const details = [
-          webhookData.prediction.state?.value,
-          webhookData.prediction.vehicle_make?.value,
-          webhookData.prediction.vehicle_model?.value,
-          webhookData.prediction.vehicle_year?.value
+          webhookData.document.prediction.state?.value,
+          webhookData.document.prediction.vehicle_make?.value,
+          webhookData.document.prediction.vehicle_model?.value,
+          webhookData.document.prediction.vehicle_year?.value
         ].filter(Boolean).join(' ');
         rawText = details || '';
       }
@@ -123,6 +126,7 @@ serve(async (req) => {
     console.log('Sending request to Mindee API...');
     console.log('Endpoint:', model.endpoint);
 
+    // Make initial async request
     const response = await fetch(model.endpoint, {
       method: 'POST',
       headers: {
@@ -138,12 +142,13 @@ serve(async (req) => {
     }
 
     const result = await response.json();
-    console.log('Mindee API response:', result);
+    console.log('Mindee API initial response:', result);
 
     return new Response(
       JSON.stringify({
         status: 'processing',
         message: 'Image is being processed. Results will be sent via webhook.',
+        job_id: result.document?.id
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
