@@ -1,3 +1,4 @@
+
 import { Outlet, useLocation, NavLink } from "react-router-dom";
 import { Rss, MessageSquare, Scan, MapPin, Settings } from "lucide-react";
 import { Header } from "./Header";
@@ -5,10 +6,11 @@ import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobilePreviewToggle } from "./MobilePreviewToggle";
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
+import ChatSettingsScreen from "@/components/chat/ChatSettingsScreen";
 
 const MainLayout = () => {
   const location = useLocation();
@@ -16,6 +18,7 @@ const MainLayout = () => {
   const { toast } = useToast();
   const [showDialog, setShowDialog] = useState(false);
   const [longPressedItem, setLongPressedItem] = useState<string | null>(null);
+  const [showChatSettings, setShowChatSettings] = useState(false);
   const navigate = useNavigate();
 
   const navItems = [
@@ -76,8 +79,8 @@ const MainLayout = () => {
 
   const handleOptionClick = (option: string, action: string) => {
     if (action === "chat_settings") {
-      navigate("/app/settings/chat");
       setShowDialog(false);
+      setShowChatSettings(true);
       setLongPressedItem(null);
       return;
     }
@@ -162,6 +165,18 @@ const MainLayout = () => {
               </Button>
             ))}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showChatSettings} onOpenChange={setShowChatSettings}>
+        <DialogContent className="max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Chat Settings</DialogTitle>
+            <DialogDescription>
+              Customize your chat experience
+            </DialogDescription>
+          </DialogHeader>
+          <ChatSettingsScreen />
         </DialogContent>
       </Dialog>
 
