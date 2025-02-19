@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
+const MINDEE_API_KEY = Deno.env.get('MINDEE_API_KEY')
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -21,57 +21,51 @@ serve(async (req) => {
       throw new Error('No image data provided')
     }
 
-    // Send image to OpenAI Vision API for analysis
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Convert base64 to binary
+    const base64Data = image.split(',')[1];
+    const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+
+    // Send image to Mindee API for license plate detection
+    const response = await fetch('https://api.mindee.net/v1/products/mindee/license_plates/v1/predict', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Token ${MINDEE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: "You are a license plate OCR system. Extract ONLY the license plate number from the image. If you can't find a license plate, respond with 'NO_PLATE_FOUND'. Only extract alphanumeric characters that are clearly visible."
-          },
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "What is the license plate number in this image? Return ONLY the plate number, nothing else."
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: image
-                }
-              }
-            ]
-          }
-        ],
-        max_tokens: 50
+        document: base64Data
       })
-    })
+    });
 
     const data = await response.json()
-    
-    if (!data.choices || !data.choices[0]?.message?.content) {
-      throw new Error('Invalid response from OCR service')
+    console.log('Mindee API response:', data);
+
+    if (!data.document || !data.document.inference || !data.document.inference.prediction) {
+      throw new Error('Invalid response from Mindee API')
     }
 
-    const extractedText = data.choices[0].message.content.trim()
-    
-    // Clean up the license plate text
-    const licensePlate = extractedText === 'NO_PLATE_FOUND' 
-      ? 'NO_PLATE_FOUND'
-      : extractedText.replace(/[^A-Z0-9]/gi, '').toUpperCase()
+    const prediction = data.document.inference.prediction;
+    const licensePlates = prediction.license_plates || [];
 
+    if (licensePlates.length === 0) {
+      return new Response(
+        JSON.stringify({
+          licensePlate: 'NO_PLATE_FOUND',
+          rawText: 'No license plate detected in the image'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Get the first detected license plate
+    const detectedPlate = licensePlates[0];
+    
     return new Response(
       JSON.stringify({
-        licensePlate,
-        rawText: extractedText,
+        licensePlate: detectedPlate.value.toUpperCase(),
+        rawText: `Confidence: ${detectedPlate.confidence}`,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
