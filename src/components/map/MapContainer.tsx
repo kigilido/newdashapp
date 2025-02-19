@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -92,11 +91,19 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
           style: 'mapbox://styles/mapbox/streets-v12',
           center: [-74.5, 40],
           zoom: 9,
-          cooperativeGestures: true,
+          cooperativeGestures: false,
+          scrollZoom: true,
           preserveDrawingBuffer: true
         });
 
-        mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        mapInstance.addControl(
+          new mapboxgl.NavigationControl({
+            showCompass: true,
+            showZoom: true,
+            visualizePitch: true
+          }),
+          'top-right'
+        );
 
         mapInstance.once('load', () => {
           if (!isMounted) return;
