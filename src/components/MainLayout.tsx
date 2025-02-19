@@ -1,4 +1,3 @@
-
 import { Outlet, useLocation, NavLink } from "react-router-dom";
 import { Rss, MessageSquare, Scan, MapPin, Settings } from "lucide-react";
 import { Header } from "./Header";
@@ -9,6 +8,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
 const MainLayout = () => {
   const location = useLocation();
@@ -16,7 +16,8 @@ const MainLayout = () => {
   const { toast } = useToast();
   const [showDialog, setShowDialog] = useState(false);
   const [longPressedItem, setLongPressedItem] = useState<string | null>(null);
-  
+  const navigate = useNavigate();
+
   const navItems = [
     { icon: Rss, label: "RSS", path: "/app/rss" },
     { icon: MessageSquare, label: "Chat", path: "/app/chat" },
@@ -73,7 +74,14 @@ const MainLayout = () => {
     }
   };
 
-  const handleOptionClick = (option: string) => {
+  const handleOptionClick = (option: string, action: string) => {
+    if (action === "chat_settings") {
+      navigate("/app/settings/chat");
+      setShowDialog(false);
+      setLongPressedItem(null);
+      return;
+    }
+
     toast({
       title: "Option Selected",
       description: `You selected: ${option}`,
@@ -148,7 +156,7 @@ const MainLayout = () => {
               <Button 
                 key={option.action}
                 variant="outline" 
-                onClick={() => handleOptionClick(option.label)}
+                onClick={() => handleOptionClick(option.label, option.action)}
               >
                 {option.label}
               </Button>
