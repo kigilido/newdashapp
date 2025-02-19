@@ -1,3 +1,4 @@
+
 import { Camera, CameraResultType, CameraDirection, CameraSource } from '@capacitor/camera';
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
@@ -139,7 +140,8 @@ const ScanScreen = () => {
       try {
         const { data: results, error } = await supabase
           .from('license_plate_results')
-          .select('*')
+          .select('license_plate, raw_text, status')
+          .eq('status', 'completed')
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -157,32 +159,27 @@ const ScanScreen = () => {
           return;
         }
 
-        if (results.status === 'completed') {
-          setIsProcessing(false);
-          if (results.license_plate === 'NO_PLATE_FOUND') {
-            toast({
-              title: "No License Plate Found",
-              description: "Please take another photo where the license plate is clearly visible.",
-              variant: "destructive",
-            });
-            setRetryCount(prev => {
-              const newCount = prev + 1;
-              if (newCount >= 2) {
-                setPhoto(null);
-                return 0;
-              }
-              return newCount;
-            });
-          } else {
-            setDetectedPlate(results.license_plate);
-            setRawText(results.raw_text);
-            setRetryCount(0);
-          }
-          return;
+        setIsProcessing(false);
+        
+        if (results.license_plate === 'NO_PLATE_FOUND') {
+          toast({
+            title: "No License Plate Found",
+            description: "Please take another photo where the license plate is clearly visible.",
+            variant: "destructive",
+          });
+          setRetryCount(prev => {
+            const newCount = prev + 1;
+            if (newCount >= 2) {
+              setPhoto(null);
+              return 0;
+            }
+            return newCount;
+          });
+        } else {
+          setDetectedPlate(results.license_plate);
+          setRawText(results.raw_text);
+          setRetryCount(0);
         }
-
-        attempts++;
-        setTimeout(poll, interval);
       } catch (error) {
         console.error('Polling iteration error:', error);
         attempts++;
