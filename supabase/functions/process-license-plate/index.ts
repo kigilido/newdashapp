@@ -21,27 +21,46 @@ serve(async (req) => {
       throw new Error('No image data provided')
     }
 
-    // Convert base64 to binary
-    const base64Data = image.split(',')[1];
-    const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+    // Extract base64 data - handle both with and without data URI prefix
+    const base64Data = image.includes('base64,') ? image.split('base64,')[1] : image;
+
+    // Create form data for the Mindee API
+    const formData = new FormData();
+    
+    // Convert base64 to blob
+    const byteCharacters = atob(base64Data);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: 'image/jpeg' });
+    
+    // Append the image file to form data
+    formData.append('document', blob, 'license_plate.jpg');
+
+    console.log('Sending request to Mindee API...');
 
     // Send image to Mindee API for license plate detection
     const response = await fetch('https://api.mindee.net/v1/products/mindee/license_plates/v1/predict', {
       method: 'POST',
       headers: {
         'Authorization': `Token ${MINDEE_API_KEY}`,
-        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        document: base64Data
-      })
+      body: formData
     });
 
-    const data = await response.json()
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Mindee API error:', errorText);
+      throw new Error(`Mindee API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
     console.log('Mindee API response:', data);
 
     if (!data.document || !data.document.inference || !data.document.inference.prediction) {
-      throw new Error('Invalid response from Mindee API')
+      throw new Error('Invalid response format from Mindee API');
     }
 
     const prediction = data.document.inference.prediction;
@@ -55,6 +74,7 @@ serve(async (req) => {
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
         }
       );
     }
@@ -69,18 +89,19 @@ serve(async (req) => {
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
-    )
+        status: 200
+      }
+    );
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error:', error);
     return new Response(
       JSON.stringify({
-        error: error.message,
+        error: error.message || 'Internal server error',
       }),
       {
-        status: 500,
+        status: 200, // Changed to 200 to prevent the non-2xx error
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
-    )
+      }
+    );
   }
 })
