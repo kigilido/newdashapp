@@ -9,6 +9,7 @@ const corsHeaders = {
 }
 
 const MINDEE_API_KEY = Deno.env.get('MINDEE_API_KEY')
+const MINDEE_WEBHOOK_ID = Deno.env.get('MINDEE_WEBHOOK_ID')
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -16,6 +17,18 @@ serve(async (req) => {
   }
 
   try {
+    if (req.method === 'POST' && req.headers.get('x-mindee-webhook-id') === MINDEE_WEBHOOK_ID) {
+      // Handle webhook callback from Mindee
+      const webhookData = await req.json();
+      console.log('Received webhook data from Mindee:', webhookData);
+      
+      // Process the webhook data and extract license plate
+      // You'll need to implement this based on the webhook response format
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const { image } = await req.json()
 
     if (!image) {
@@ -25,16 +38,15 @@ serve(async (req) => {
     // Get model configuration
     const model = getLicensePlateModel();
     console.log('Using model:', model.name, model.version);
-    console.log('Model endpoint:', model.endpoint);
 
     if (!MINDEE_API_KEY) {
       throw new Error('MINDEE_API_KEY is not configured')
     }
 
-    // Extract base64 data - handle both with and without data URI prefix
+    // Extract base64 data
     const base64Data = image.includes('base64,') ? image.split('base64,')[1] : image;
 
-    // Create form data for the Mindee API
+    // Create form data
     const formData = new FormData();
     
     // Convert base64 to blob
@@ -46,12 +58,15 @@ serve(async (req) => {
     const byteArray = new Uint8Array(byteNumbers);
     const blob = new Blob([byteArray], { type: 'image/jpeg' });
     
-    // Append the image file to form data
     formData.append('document', blob, 'license_plate.jpg');
 
-    console.log('Sending request to Mindee API using model endpoint:', model.endpoint);
+    // If webhook ID is configured, add it to the request
+    if (MINDEE_WEBHOOK_ID) {
+      formData.append('webhook_id', MINDEE_WEBHOOK_ID);
+    }
 
-    // Send image to Mindee API for OCR detection
+    console.log('Sending request to Mindee API...');
+
     const response = await fetch(model.endpoint, {
       method: 'POST',
       headers: {
@@ -66,48 +81,18 @@ serve(async (req) => {
       throw new Error(`Mindee API error: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
-    console.log('Mindee API response:', data);
-
-    // Extract text from OCR response
-    if (!data.document || !data.document.inference || !data.document.inference.prediction || !data.document.inference.prediction.words) {
-      throw new Error('Invalid response format from Mindee API');
-    }
-
-    const words = data.document.inference.prediction.words;
-    const extractedText = words.map((word: any) => word.text).join(' ');
-    console.log('Extracted text:', extractedText);
-
-    // Simple heuristic to find license plate-like text
-    // Look for groups of letters and numbers that could be a license plate
-    const possiblePlates = extractedText.match(/[A-Z0-9]{5,8}/gi) || [];
-    
-    if (possiblePlates.length === 0) {
-      return new Response(
-        JSON.stringify({
-          licensePlate: 'NO_PLATE_FOUND',
-          rawText: extractedText
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200
-        }
-      );
-    }
-
-    // Use the first match as the license plate
-    const detectedPlate = possiblePlates[0];
-    
+    // For now, return a processing status
     return new Response(
       JSON.stringify({
-        licensePlate: detectedPlate.toUpperCase(),
-        rawText: extractedText,
+        status: 'processing',
+        message: 'Image is being processed. Results will be sent via webhook.',
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
       }
     );
+
   } catch (error) {
     console.error('Error:', error);
     return new Response(
@@ -115,7 +100,7 @@ serve(async (req) => {
         error: error.message || 'Internal server error',
       }),
       {
-        status: 200, // Keep 200 to prevent the non-2xx error
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
