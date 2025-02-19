@@ -1,5 +1,5 @@
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Map as MapIcon, Satellite } from 'lucide-react';
@@ -20,7 +20,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
   const [isMapReady, setIsMapReady] = useState(false);
   const isInitialized = useRef(false);
 
-  const toggleMapStyle = () => {
+  const toggleMapStyle = useCallback(() => {
     if (!map.current || !isMapReady) return;
     
     const newStyle = isSatelliteView
@@ -29,9 +29,9 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
     
     map.current.setStyle(newStyle);
     setIsSatelliteView(!isSatelliteView);
-  };
+  }, [isSatelliteView, isMapReady]);
 
-  const addLocationMarker = (longitude: number, latitude: number) => {
+  const addLocationMarker = useCallback((longitude: number, latitude: number) => {
     if (!map.current) return;
 
     if (locationMarker.current) {
@@ -47,7 +47,6 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         .setLngLat([longitude, latitude])
         .addTo(map.current);
 
-      // Add popup for user's location
       const popup = new mapboxgl.Popup({
         closeButton: false,
         closeOnClick: false
@@ -56,7 +55,6 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         .setHTML('<div class="text-sm font-medium">Your location</div>')
         .addTo(map.current);
 
-      // Ensure popup stays open
       locationMarker.current.setPopup(popup);
     } catch (error) {
       console.error('Error adding location marker:', error);
@@ -66,17 +64,18 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         variant: "destructive"
       });
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const initializeMap = async () => {
       if (!mapContainer.current || isInitialized.current) return;
 
       try {
-        // Get the secret directly from Supabase secrets
         const { data: { token }, error } = await supabase.functions.invoke('get-mapbox-token');
         
-        if (error || !token) {
+        if (error || !token || !isMounted) {
           console.error('Failed to get Mapbox token:', error);
           toast({
             title: "Map Error",
@@ -88,30 +87,30 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
 
         mapboxgl.accessToken = token;
 
-        // Create map instance
         const mapInstance = new mapboxgl.Map({
           container: mapContainer.current,
           style: 'mapbox://styles/mapbox/streets-v12',
           center: [-74.5, 40],
           zoom: 9,
-          cooperativeGestures: true
+          cooperativeGestures: true,
+          preserveDrawingBuffer: true
         });
 
-        // Add navigation control
         mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-        // Wait for map to load
-        mapInstance.on('load', () => {
+        mapInstance.once('load', () => {
+          if (!isMounted) return;
+          
           console.log('Map loaded successfully');
           map.current = mapInstance;
           setIsMapReady(true);
           isInitialized.current = true;
           onMapInitialized(mapInstance);
 
-          // Get user location after map is loaded
           if ('geolocation' in navigator) {
             navigator.geolocation.getCurrentPosition(
               (position) => {
+                if (!isMounted) return;
                 const { latitude, longitude } = position.coords;
                 mapInstance.flyTo({
                   center: [longitude, latitude],
@@ -122,6 +121,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
               },
               (error) => {
                 console.error('Geolocation error:', error);
+                if (!isMounted) return;
                 toast({
                   title: "Location Access Denied",
                   description: "Using default map location. Please enable location access for better experience.",
@@ -132,8 +132,8 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
           }
         });
 
-        // Handle map errors
         mapInstance.on('error', (e) => {
+          if (!isMounted) return;
           console.error('Map error:', e);
           toast({
             title: "Map Error",
@@ -143,6 +143,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         });
 
       } catch (error) {
+        if (!isMounted) return;
         console.error('Error initializing map:', error);
         toast({
           title: "Map Error",
@@ -155,6 +156,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
     initializeMap();
 
     return () => {
+      isMounted = false;
       if (locationMarker.current) {
         locationMarker.current.remove();
       }
@@ -165,7 +167,7 @@ export const MapContainer = ({ onMapInitialized }: MapContainerProps) => {
         isInitialized.current = false;
       }
     };
-  }, [onMapInitialized, toast]);
+  }, []); // Empty dependency array since we're using refs and cleanup
 
   return (
     <div className="relative w-full h-full">
