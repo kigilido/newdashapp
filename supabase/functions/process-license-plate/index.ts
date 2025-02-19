@@ -78,7 +78,7 @@ serve(async (req) => {
     // Extract base64 data
     const base64Data = image.includes('base64,') ? image.split('base64,')[1] : image;
 
-    // Create form data
+    // Create form data for Mindee API
     const formData = new FormData();
     
     // Convert base64 to blob
@@ -90,14 +90,16 @@ serve(async (req) => {
     const byteArray = new Uint8Array(byteNumbers);
     const blob = new Blob([byteArray], { type: 'image/jpeg' });
     
+    // Append the image file
     formData.append('document', blob, 'license_plate.jpg');
 
-    // Add webhook ID to the request
+    // Add webhook ID if available
     if (MINDEE_WEBHOOK_ID) {
       formData.append('webhook_id', MINDEE_WEBHOOK_ID);
     }
 
     console.log('Sending request to Mindee API...');
+    console.log('Endpoint:', model.endpoint);
 
     const response = await fetch(model.endpoint, {
       method: 'POST',
@@ -113,7 +115,9 @@ serve(async (req) => {
       throw new Error(`Mindee API error: ${response.status} ${response.statusText}`);
     }
 
-    // Return processing status
+    const result = await response.json();
+    console.log('Mindee API response:', result);
+
     return new Response(
       JSON.stringify({
         status: 'processing',
