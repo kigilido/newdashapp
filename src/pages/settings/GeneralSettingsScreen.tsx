@@ -1,13 +1,14 @@
 
 import { PreferencesSection } from "@/components/settings/PreferencesSection";
 import { FontPreferencesSection } from "@/components/settings/FontPreferencesSection";
+import { BackupManager } from "@/components/settings/BackupManager";
 
 const GeneralSettingsScreen = () => {
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">General Settings</h1>
-      <FontPreferencesSection />
+    <div className="space-y-6">
       <PreferencesSection />
+      <FontPreferencesSection />
+      <BackupManager />
     </div>
   );
 };
