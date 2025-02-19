@@ -13,20 +13,35 @@ export const VehicleMarkers = ({ map }: VehicleMarkersProps) => {
   const markersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
   const { toast } = useToast();
 
-  // Fetch nearby vehicles
+  // Fetch nearby vehicles from the last hour only
   const { data: nearbyVehicles, error } = useQuery({
     queryKey: ['nearby-vehicles'],
     queryFn: async () => {
+      // Calculate timestamp for 1 hour ago
+      const oneHourAgo = new Date();
+      oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+
       const { data, error } = await supabase
         .from('vehicle_locations')
         .select('*, profiles(username, license_plate)')
+        .gte('last_updated', oneHourAgo.toISOString())
         .order('last_updated', { ascending: false });
 
       if (error) {
         console.error('Error fetching vehicle locations:', error);
         throw error;
       }
-      return data;
+
+      // Group by user_id and take only the most recent location for each user
+      const latestLocations = data.reduce((acc: any[], current) => {
+        const existingIndex = acc.findIndex(item => item.user_id === current.user_id);
+        if (existingIndex === -1) {
+          acc.push(current);
+        }
+        return acc;
+      }, []);
+
+      return latestLocations;
     },
     refetchInterval: 10000, // Refetch every 10 seconds
     retry: 3, // Retry failed requests up to 3 times
