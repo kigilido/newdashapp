@@ -7,40 +7,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { MapContainer } from '@/components/map/MapContainer';
 import { LocationSearch } from '@/components/map/LocationSearch';
 import { VehicleMarkers } from '@/components/map/VehicleMarkers';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { MoreVertical } from 'lucide-react';
 
 const MapScreen = () => {
   const [map, setMap] = useState<mapboxgl.Map | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showDialog, setShowDialog] = useState(false);
   const { toast } = useToast();
-
-  let longPressTimer: NodeJS.Timeout;
-  const longPressDuration = 500; // 500ms for long press
-
-  const handleMouseDown = () => {
-    longPressTimer = setTimeout(() => {
-      setShowDialog(true);
-    }, longPressDuration);
-  };
-
-  const handleMouseUp = () => {
-    clearTimeout(longPressTimer);
-  };
-
-  const handleMouseLeave = () => {
-    clearTimeout(longPressTimer);
-  };
-
-  const handleOptionClick = (option: string) => {
-    toast({
-      title: "Option Selected",
-      description: `You selected: ${option}`,
-    });
-    setShowDialog(false);
-  };
 
   const updateUserLocation = async (latitude: number, longitude: number) => {
     try {
@@ -134,55 +105,7 @@ const MapScreen = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
-      <div 
-        className="flex items-center gap-2 mb-4 cursor-pointer select-none"
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-        onTouchStart={handleMouseDown}
-        onTouchEnd={handleMouseUp}
-      >
-        <h1 className="text-2xl font-bold">Location</h1>
-        <div className="flex items-center text-muted-foreground text-sm">
-          <MoreVertical className="h-4 w-4" />
-          <span className="ml-1">(long press for options)</span>
-        </div>
-      </div>
-      
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Map Options</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => handleOptionClick("Share Location")}
-            >
-              Share Location
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => handleOptionClick("Save to Favorites")}
-            >
-              Save to Favorites
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => handleOptionClick("View History")}
-            >
-              View History
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => handleOptionClick("Settings")}
-            >
-              Settings
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-      
+      <h1 className="text-2xl font-bold mb-4">Location</h1>
       <div className="relative flex-1">
         <Card className="w-full h-full overflow-hidden">
           <MapContainer onMapInitialized={handleMapInitialized} />

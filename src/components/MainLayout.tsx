@@ -5,10 +5,17 @@ import { Header } from "./Header";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobilePreviewToggle } from "./MobilePreviewToggle";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
 
 const MainLayout = () => {
   const location = useLocation();
   const isMobile = useIsMobile();
+  const { toast } = useToast();
+  const [showDialog, setShowDialog] = useState(false);
+  const [longPressedItem, setLongPressedItem] = useState<string | null>(null);
   
   const navItems = [
     { icon: Rss, label: "RSS", path: "/app/rss" },
@@ -23,7 +30,36 @@ const MainLayout = () => {
     return currentItem ? currentItem.label : "DASH";
   };
 
-  const mobileWidth = "390px"; // Standard iPhone width
+  const mobileWidth = "390px";
+
+  let longPressTimer: NodeJS.Timeout;
+  const longPressDuration = 500;
+
+  const handleMouseDown = (label: string) => {
+    longPressTimer = setTimeout(() => {
+      if (label === "Map") {
+        setLongPressedItem(label);
+        setShowDialog(true);
+      }
+    }, longPressDuration);
+  };
+
+  const handleMouseUp = () => {
+    clearTimeout(longPressTimer);
+  };
+
+  const handleMouseLeave = () => {
+    clearTimeout(longPressTimer);
+  };
+
+  const handleOptionClick = (option: string) => {
+    toast({
+      title: "Option Selected",
+      description: `You selected: ${option}`,
+    });
+    setShowDialog(false);
+    setLongPressedItem(null);
+  };
 
   return (
     <div 
@@ -59,9 +95,14 @@ const MainLayout = () => {
             <NavLink
               key={path}
               to={path}
+              onMouseDown={() => handleMouseDown(label)}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseLeave}
+              onTouchStart={() => handleMouseDown(label)}
+              onTouchEnd={handleMouseUp}
               className={({ isActive }) =>
                 cn(
-                  "flex flex-col items-center p-2 rounded-lg transition-colors",
+                  "flex flex-col items-center p-2 rounded-lg transition-colors relative",
                   "hover:bg-[#3A86FF]/10",
                   isActive
                     ? "text-[#3A86FF] bg-[#3A86FF]/10"
@@ -75,6 +116,41 @@ const MainLayout = () => {
           ))}
         </div>
       </nav>
+
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Map Options</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => handleOptionClick("Share Location")}
+            >
+              Share Location
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => handleOptionClick("Save to Favorites")}
+            >
+              Save to Favorites
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => handleOptionClick("View History")}
+            >
+              View History
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => handleOptionClick("Settings")}
+            >
+              Settings
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {!isMobile && <MobilePreviewToggle />}
     </div>
   );
