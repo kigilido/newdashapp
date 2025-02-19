@@ -1,65 +1,64 @@
 
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { LicensePlateConfirmation } from "./LicensePlateConfirmation";
 
 interface PhotoPreviewProps {
   photoUrl: string;
   onRetake: () => void;
   isProcessing: boolean;
-  licensePlate?: string | null;
-  onConfirm?: () => void;
-  rawText?: string;
+  licensePlate: string | null;
+  onConfirm: () => void;
+  rawText: string | null;
 }
 
-export const PhotoPreview = ({ 
-  photoUrl, 
-  onRetake, 
-  isProcessing, 
+export const PhotoPreview = ({
+  photoUrl,
+  onRetake,
+  isProcessing,
   licensePlate,
   onConfirm,
-  rawText 
+  rawText
 }: PhotoPreviewProps) => {
-  return (
-    <div className="space-y-4 w-full flex flex-col items-center">
-      <img 
-        src={photoUrl} 
-        alt="Captured" 
-        className="w-full max-w-md rounded-lg shadow-lg"
+  if (licensePlate && licensePlate !== 'NO_PLATE_FOUND') {
+    return (
+      <LicensePlateConfirmation
+        licensePlate={licensePlate}
+        vehicleDetails={rawText}
+        onConfirm={onConfirm}
+        onRetake={onRetake}
+        isProcessing={isProcessing}
       />
-      
-      {isProcessing ? (
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <p>Processing image...</p>
-        </div>
-      ) : licensePlate ? (
-        <div className="space-y-4 text-center">
-          <div className="text-lg font-semibold">
-            Detected License Plate: <span className="text-primary">{licensePlate}</span>
-          </div>
-          {rawText && (
-            <div className="text-sm text-muted-foreground">
-              Full text detected: <span className="font-mono bg-muted px-2 py-1 rounded">{rawText}</span>
+    );
+  }
+
+  return (
+    <div className="w-full max-w-md mx-auto space-y-4">
+      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg">
+        <img
+          src={photoUrl}
+          alt="License plate preview"
+          className="object-cover w-full h-full"
+        />
+        {isProcessing && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <div className="space-y-4 text-center">
+              <Skeleton className="h-4 w-[200px] bg-white/20" />
+              <Skeleton className="h-4 w-[160px] bg-white/20" />
+              <p className="text-white text-sm">Processing image...</p>
             </div>
-          )}
-          <div className="flex gap-2 justify-center">
-            <Button onClick={onConfirm} variant="default">
-              Confirm & Continue
-            </Button>
-            <Button onClick={onRetake} variant="outline">
-              Take Another Photo
-            </Button>
           </div>
-        </div>
-      ) : (
-        <Button 
-          onClick={onRetake}
-          variant="outline"
-          disabled={isProcessing}
-        >
-          Take Another Photo
-        </Button>
-      )}
+        )}
+      </div>
+
+      <Button
+        onClick={onRetake}
+        disabled={isProcessing}
+        variant="outline"
+        className="w-full"
+      >
+        Take Another Photo
+      </Button>
     </div>
   );
 };
