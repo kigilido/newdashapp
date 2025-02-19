@@ -15,26 +15,50 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
 interface MindeeResponse {
+  api_request: {
+    error: Record<string, unknown>;
+    resources: string[];
+    status: string;
+    status_code: number;
+    url: string;
+  };
   document: {
     id: string;
-    status: string;
-    prediction?: {
-      license_plate_number: {
-        value: string | null;
+    inference: {
+      finished_at: string;
+      started_at: string;
+      processing_time: number;
+      prediction: {
+        license_plate_number: {
+          value: string | null;
+        };
+        state: {
+          value: string | null;
+        };
+        vehicle_make: {
+          value: string | null;
+        };
+        vehicle_model: {
+          value: string | null;
+        };
+        vehicle_year: {
+          value: string | null;
+        };
       };
-      state: {
-        value: string | null;
-      };
-      vehicle_make: {
-        value: string | null;
-      };
-      vehicle_model: {
-        value: string | null;
-      };
-      vehicle_year: {
-        value: number | null;
+      product: {
+        features: string[];
+        name: string;
+        version: string;
       };
     };
+    n_pages: number;
+    name: string;
+  };
+  job: {
+    available_at: string;
+    id: string;
+    issued_at: string;
+    status: string;
   };
 }
 
@@ -57,13 +81,13 @@ serve(async (req) => {
       let licensePlate = 'NO_PLATE_FOUND';
       let rawText = '';
 
-      if (webhookData.document?.prediction?.license_plate_number?.value) {
-        licensePlate = webhookData.document.prediction.license_plate_number.value.toUpperCase();
+      if (webhookData.document?.inference?.prediction?.license_plate_number?.value) {
+        licensePlate = webhookData.document.inference.prediction.license_plate_number.value.toUpperCase();
         const details = [
-          webhookData.document.prediction.state?.value,
-          webhookData.document.prediction.vehicle_make?.value,
-          webhookData.document.prediction.vehicle_model?.value,
-          webhookData.document.prediction.vehicle_year?.value
+          webhookData.document.inference.prediction.state?.value,
+          webhookData.document.inference.prediction.vehicle_make?.value,
+          webhookData.document.inference.prediction.vehicle_model?.value,
+          webhookData.document.inference.prediction.vehicle_year?.value
         ].filter(Boolean).join(' ');
         rawText = details || '';
       }
@@ -148,7 +172,7 @@ serve(async (req) => {
       JSON.stringify({
         status: 'processing',
         message: 'Image is being processed. Results will be sent via webhook.',
-        job_id: result.document?.id
+        job_id: result.job?.id || result.document?.id
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
