@@ -7,9 +7,9 @@ export interface MindeeModelConfig {
 }
 
 export const DEFAULT_MODEL: MindeeModelConfig = {
-  name: 'mindee/license_plates',
+  name: 'mindee/ocr',
   version: '1.1',
-  endpoint: 'https://api.mindee.net/v1/products/mindee/license_plates/v1/predict'
+  endpoint: 'https://api.mindee.net/v1/products/mindee/ocr/v1/predict'
 };
 
 export const getLicensePlateModel = (): MindeeModelConfig => {

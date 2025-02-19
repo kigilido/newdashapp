@@ -49,13 +49,9 @@ serve(async (req) => {
     // Append the image file to form data
     formData.append('document', blob, 'license_plate.jpg');
 
-    // Log request details (but not the actual image data)
-    console.log('Preparing request to Mindee API:');
-    console.log('- Endpoint:', model.endpoint);
-    console.log('- API Key present:', !!MINDEE_API_KEY);
-    console.log('- Content-Type:', 'multipart/form-data');
+    console.log('Sending request to Mindee API using model endpoint:', model.endpoint);
 
-    // Send image to Mindee API for license plate detection
+    // Send image to Mindee API for OCR detection
     const response = await fetch(model.endpoint, {
       method: 'POST',
       headers: {
@@ -64,44 +60,33 @@ serve(async (req) => {
       body: formData
     });
 
-    // Log response details
-    console.log('Mindee API Response:');
-    console.log('- Status:', response.status);
-    console.log('- Status Text:', response.statusText);
-
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Mindee API detailed error:', errorText);
-      
-      // Check if it's an authentication error
-      if (response.status === 401) {
-        throw new Error('Invalid Mindee API key. Please check your API key configuration.');
-      }
-      
-      // Check if endpoint doesn't exist
-      if (response.status === 404) {
-        throw new Error('Invalid Mindee API endpoint. Please check your model configuration.');
-      }
-      
       throw new Error(`Mindee API error: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
-    console.log('Mindee API response data structure:', Object.keys(data));
+    console.log('Mindee API response:', data);
 
-    if (!data.document || !data.document.inference || !data.document.inference.prediction) {
-      console.error('Unexpected API response structure:', JSON.stringify(data, null, 2));
+    // Extract text from OCR response
+    if (!data.document || !data.document.inference || !data.document.inference.prediction || !data.document.inference.prediction.words) {
       throw new Error('Invalid response format from Mindee API');
     }
 
-    const prediction = data.document.inference.prediction;
-    const licensePlates = prediction.license_plates || [];
+    const words = data.document.inference.prediction.words;
+    const extractedText = words.map((word: any) => word.text).join(' ');
+    console.log('Extracted text:', extractedText);
 
-    if (licensePlates.length === 0) {
+    // Simple heuristic to find license plate-like text
+    // Look for groups of letters and numbers that could be a license plate
+    const possiblePlates = extractedText.match(/[A-Z0-9]{5,8}/gi) || [];
+    
+    if (possiblePlates.length === 0) {
       return new Response(
         JSON.stringify({
           licensePlate: 'NO_PLATE_FOUND',
-          rawText: 'No license plate detected in the image'
+          rawText: extractedText
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -110,13 +95,13 @@ serve(async (req) => {
       );
     }
 
-    // Get the first detected license plate
-    const detectedPlate = licensePlates[0];
+    // Use the first match as the license plate
+    const detectedPlate = possiblePlates[0];
     
     return new Response(
       JSON.stringify({
-        licensePlate: detectedPlate.value.toUpperCase(),
-        rawText: `Confidence: ${detectedPlate.confidence}`,
+        licensePlate: detectedPlate.toUpperCase(),
+        rawText: extractedText,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
