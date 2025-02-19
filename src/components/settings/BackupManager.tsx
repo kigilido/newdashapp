@@ -30,13 +30,17 @@ export const BackupManager = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch backup points
+  // Fetch backup points using the created_by filter since we have RLS
   const { data: backupPoints, isLoading } = useQuery({
     queryKey: ['backupPoints'],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
       const { data, error } = await supabase
         .from('backup_points')
         .select('id, created_at, description, backup_type, status')
+        .eq('created_by', user.id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -44,17 +48,13 @@ export const BackupManager = () => {
     },
   });
 
-  // Create backup mutation
+  // Create backup mutation using the create_backup_point function
   const { mutate: createBackup, isPending: isCreatingBackup } = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase
-        .from('backup_points')
-        .insert([{
-          description: 'Manual backup',
-          backup_type: 'manual' as const,
-        }])
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc('create_backup_point', {
+        p_description: 'Manual backup',
+        p_backup_type: 'manual'
+      });
       
       if (error) throw error;
       return data;
@@ -75,15 +75,12 @@ export const BackupManager = () => {
     },
   });
 
-  // Restore backup mutation
+  // Restore backup mutation using the restore_from_backup function
   const { mutate: restoreBackup, isPending: isRestoring } = useMutation({
     mutationFn: async (backupId: string) => {
-      const { data, error } = await supabase
-        .from('backup_points')
-        .update({ status: 'pending' })
-        .eq('id', backupId)
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc('restore_from_backup', {
+        p_backup_point_id: backupId
+      });
       
       if (error) throw error;
       return data;
