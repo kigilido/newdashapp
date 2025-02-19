@@ -37,7 +37,7 @@ const MainLayout = () => {
 
   const handleMouseDown = (label: string) => {
     longPressTimer = setTimeout(() => {
-      if (label === "Map") {
+      if (label === "Map" || label === "Chat") {
         setLongPressedItem(label);
         setShowDialog(true);
       }
@@ -50,6 +50,27 @@ const MainLayout = () => {
 
   const handleMouseLeave = () => {
     clearTimeout(longPressTimer);
+  };
+
+  const getDialogOptions = (label: string) => {
+    switch (label) {
+      case "Map":
+        return [
+          { label: "Share Location", action: "share_location" },
+          { label: "Save to Favorites", action: "save_favorites" },
+          { label: "View History", action: "view_history" },
+          { label: "Settings", action: "settings" },
+        ];
+      case "Chat":
+        return [
+          { label: "New Group Chat", action: "new_group" },
+          { label: "Mute Notifications", action: "mute" },
+          { label: "Mark All as Read", action: "mark_read" },
+          { label: "Chat Settings", action: "chat_settings" },
+        ];
+      default:
+        return [];
+    }
   };
 
   const handleOptionClick = (option: string) => {
@@ -120,33 +141,18 @@ const MainLayout = () => {
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Map Options</DialogTitle>
+            <DialogTitle>{longPressedItem} Options</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => handleOptionClick("Share Location")}
-            >
-              Share Location
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => handleOptionClick("Save to Favorites")}
-            >
-              Save to Favorites
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => handleOptionClick("View History")}
-            >
-              View History
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => handleOptionClick("Settings")}
-            >
-              Settings
-            </Button>
+            {getDialogOptions(longPressedItem || "").map((option) => (
+              <Button 
+                key={option.action}
+                variant="outline" 
+                onClick={() => handleOptionClick(option.label)}
+              >
+                {option.label}
+              </Button>
+            ))}
           </div>
         </DialogContent>
       </Dialog>
