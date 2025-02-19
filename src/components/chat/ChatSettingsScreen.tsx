@@ -32,24 +32,24 @@ const ChatSettingsScreen = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Chat Settings</h1>
+    <div className="space-y-3">
+      <h1 className="text-xl font-bold mb-2">Chat Settings</h1>
 
       {/* Notifications Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5" />
+      <Card className="shadow-sm">
+        <CardHeader className="py-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Bell className="h-4 w-4" />
             Notifications
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-2 py-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="push-notifications">Push Notifications</Label>
+            <Label htmlFor="push-notifications" className="text-sm">Push Notifications</Label>
             <Switch id="push-notifications" />
           </div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="sound-notifications">Sound Notifications</Label>
+            <Label htmlFor="sound-notifications" className="text-sm">Sound Notifications</Label>
             <Switch 
               id="sound-notifications" 
               checked={soundEnabled}
@@ -60,16 +60,16 @@ const ChatSettingsScreen = () => {
       </Card>
 
       {/* Privacy Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Lock className="h-5 w-5" />
+      <Card className="shadow-sm">
+        <CardHeader className="py-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Lock className="h-4 w-4" />
             Privacy & Security
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-2 py-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="read-receipts">Read Receipts</Label>
+            <Label htmlFor="read-receipts" className="text-sm">Read Receipts</Label>
             <Switch 
               id="read-receipts" 
               checked={readReceipts}
@@ -77,7 +77,7 @@ const ChatSettingsScreen = () => {
             />
           </div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="last-seen">Show Last Seen</Label>
+            <Label htmlFor="last-seen" className="text-sm">Show Last Seen</Label>
             <Switch 
               id="last-seen" 
               checked={lastSeen}
@@ -88,16 +88,16 @@ const ChatSettingsScreen = () => {
       </Card>
 
       {/* Chat Interface */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Palette className="h-5 w-5" />
+      <Card className="shadow-sm">
+        <CardHeader className="py-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Palette className="h-4 w-4" />
             Chat Interface
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label>Message Text Size ({fontSize}px)</Label>
+            <Label className="text-sm">Message Text Size ({fontSize}px)</Label>
             <Slider
               value={[fontSize]}
               onValueChange={handleFontSizeChange}
@@ -107,27 +107,27 @@ const ChatSettingsScreen = () => {
             />
           </div>
           <div className="space-y-2">
-            <Label>Theme</Label>
+            <Label className="text-sm">Theme</Label>
             <ToggleGroup type="single" value={theme} onValueChange={setTheme} className="justify-start">
-              <ToggleGroupItem value="light">Light</ToggleGroupItem>
-              <ToggleGroupItem value="dark">Dark</ToggleGroupItem>
-              <ToggleGroupItem value="system">System</ToggleGroupItem>
+              <ToggleGroupItem value="light" className="text-xs">Light</ToggleGroupItem>
+              <ToggleGroupItem value="dark" className="text-xs">Dark</ToggleGroupItem>
+              <ToggleGroupItem value="system" className="text-xs">System</ToggleGroupItem>
             </ToggleGroup>
           </div>
         </CardContent>
       </Card>
 
       {/* Storage & Media */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <HardDrive className="h-5 w-5" />
+      <Card className="shadow-sm">
+        <CardHeader className="py-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <HardDrive className="h-4 w-4" />
             Storage & Media
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 py-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="auto-download">Auto-download Media</Label>
+            <Label htmlFor="auto-download" className="text-sm">Auto-download Media</Label>
             <Switch 
               id="auto-download" 
               checked={autoDownload}
@@ -137,7 +137,7 @@ const ChatSettingsScreen = () => {
           <Button 
             variant="destructive" 
             onClick={handleClearHistory}
-            className="w-full"
+            className="w-full text-sm py-1 h-8"
           >
             Clear Chat History
           </Button>
@@ -145,16 +145,16 @@ const ChatSettingsScreen = () => {
       </Card>
 
       {/* Accessibility */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AccessibilityIcon className="h-5 w-5" />
+      <Card className="shadow-sm">
+        <CardHeader className="py-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <AccessibilityIcon className="h-4 w-4" />
             Accessibility
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <Label>High Contrast Mode</Label>
+        <CardContent className="py-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="high-contrast" className="text-sm">High Contrast Mode</Label>
             <Switch id="high-contrast" />
           </div>
         </CardContent>
