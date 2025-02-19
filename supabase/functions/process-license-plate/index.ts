@@ -14,6 +14,26 @@ const MINDEE_WEBHOOK_ID = Deno.env.get('MINDEE_WEBHOOK_ID')
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
+interface MindeeResponse {
+  prediction: {
+    license_plate_number: {
+      value: string | null;
+    };
+    state: {
+      value: string | null;
+    };
+    vehicle_make: {
+      value: string | null;
+    };
+    vehicle_model: {
+      value: string | null;
+    };
+    vehicle_year: {
+      value: number | null;
+    };
+  };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -27,19 +47,24 @@ serve(async (req) => {
 
     // Handle webhook callback from Mindee
     if (req.method === 'POST' && req.headers.get('x-mindee-webhook-id') === MINDEE_WEBHOOK_ID) {
-      const webhookData = await req.json();
+      const webhookData = await req.json() as MindeeResponse;
       console.log('Received webhook data from Mindee:', webhookData);
 
       let licensePlate = 'NO_PLATE_FOUND';
       let rawText = '';
 
-      // Extract license plate from webhook data
-      if (webhookData.document?.inference?.prediction?.license_plates?.[0]?.value) {
-        licensePlate = webhookData.document.inference.prediction.license_plates[0].value.toUpperCase();
-        rawText = webhookData.document.inference.ocr?.raw_text || '';
+      if (webhookData.prediction?.license_plate_number?.value) {
+        licensePlate = webhookData.prediction.license_plate_number.value.toUpperCase();
+        // Combine all available vehicle information into raw text
+        const details = [
+          webhookData.prediction.state?.value,
+          webhookData.prediction.vehicle_make?.value,
+          webhookData.prediction.vehicle_model?.value,
+          webhookData.prediction.vehicle_year?.value
+        ].filter(Boolean).join(' ');
+        rawText = details || '';
       }
 
-      // Store the result in Supabase
       const { error } = await supabaseClient
         .from('license_plate_results')
         .update({
@@ -61,18 +86,17 @@ serve(async (req) => {
       });
     }
 
-    const { image } = await req.json()
+    const { image } = await req.json();
 
     if (!image) {
-      throw new Error('No image data provided')
+      throw new Error('No image data provided');
     }
 
-    // Get model configuration
     const model = getLicensePlateModel();
     console.log('Using model:', model.name, model.version);
 
     if (!MINDEE_API_KEY) {
-      throw new Error('MINDEE_API_KEY is not configured')
+      throw new Error('MINDEE_API_KEY is not configured');
     }
 
     // Extract base64 data
@@ -90,10 +114,8 @@ serve(async (req) => {
     const byteArray = new Uint8Array(byteNumbers);
     const blob = new Blob([byteArray], { type: 'image/jpeg' });
     
-    // Append the image file
     formData.append('document', blob, 'license_plate.jpg');
 
-    // Add webhook ID if available
     if (MINDEE_WEBHOOK_ID) {
       formData.append('webhook_id', MINDEE_WEBHOOK_ID);
     }
