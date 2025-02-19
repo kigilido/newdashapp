@@ -4,25 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Save, RotateCcw, Clock, AlertCircle } from "lucide-react";
-import { format } from "date-fns";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Save } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-
-interface BackupPoint {
-  id: string;
-  created_at: string;
-  description: string | null;
-  backup_type: 'manual' | 'automatic' | 'scheduled';
-  status: 'pending' | 'completed' | 'failed';
-}
+import { BackupList } from "./backup/BackupList";
+import { RestoreDialog } from "./backup/RestoreDialog";
+import { BackupPoint } from "./backup/types";
 
 export const BackupManager = () => {
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
@@ -30,7 +16,6 @@ export const BackupManager = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch backup points using the created_by filter since we have RLS
   const { data: backupPoints, isLoading } = useQuery({
     queryKey: ['backupPoints'],
     queryFn: async () => {
@@ -48,7 +33,6 @@ export const BackupManager = () => {
     },
   });
 
-  // Create backup mutation using the create_backup_point function
   const { mutate: createBackup, isPending: isCreatingBackup } = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.rpc('create_backup_point', {
@@ -75,7 +59,6 @@ export const BackupManager = () => {
     },
   });
 
-  // Restore backup mutation using the restore_from_backup function
   const { mutate: restoreBackup, isPending: isRestoring } = useMutation({
     mutationFn: async (backupId: string) => {
       const { data, error } = await supabase.rpc('restore_from_backup', {
@@ -92,7 +75,6 @@ export const BackupManager = () => {
         title: "Restore initiated",
         description: "Your application state is being restored.",
       });
-      // Reload the page to reflect restored state
       window.location.reload();
     },
     onError: (error) => {
@@ -134,75 +116,21 @@ export const BackupManager = () => {
 
         <div className="space-y-2">
           <h3 className="text-sm font-medium">Recent Backups</h3>
-          {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading backups...</p>
-          ) : !backupPoints?.length ? (
-            <p className="text-sm text-muted-foreground">No backups found</p>
-          ) : (
-            <ScrollArea className="h-[200px]">
-              <div className="space-y-2">
-                {backupPoints.map((backup) => (
-                  <div
-                    key={backup.id}
-                    className="flex items-center justify-between p-2 border rounded-lg"
-                  >
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">
-                        {backup.description || 'Backup Point'}
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {format(new Date(backup.created_at), 'PPp')}
-                      </div>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleRestore(backup)}
-                      disabled={isRestoring || backup.status === 'pending'}
-                    >
-                      <RotateCcw className="h-4 w-4 mr-1" />
-                      Restore
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          )}
+          <BackupList
+            backupPoints={backupPoints}
+            isLoading={isLoading}
+            isRestoring={isRestoring}
+            onRestore={handleRestore}
+          />
         </div>
 
-        <Dialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Confirm Restore</DialogTitle>
-              <DialogDescription className="space-y-2">
-                <div className="flex items-center gap-2 text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg mt-2">
-                  <AlertCircle className="h-5 w-5" />
-                  <p>
-                    This will restore your application to the state saved on{' '}
-                    {selectedBackup && format(new Date(selectedBackup.created_at), 'PPp')}
-                  </p>
-                </div>
-                <p>Are you sure you want to proceed?</p>
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowRestoreDialog(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={confirmRestore}
-                disabled={isRestoring}
-              >
-                {isRestoring ? "Restoring..." : "Restore"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <RestoreDialog
+          backup={selectedBackup}
+          isOpen={showRestoreDialog}
+          isRestoring={isRestoring}
+          onOpenChange={setShowRestoreDialog}
+          onConfirm={confirmRestore}
+        />
       </CardContent>
     </Card>
   );
