@@ -1,4 +1,3 @@
-
 import { Camera, CameraResultType, CameraDirection, CameraSource } from '@capacitor/camera';
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
@@ -137,42 +136,58 @@ const ScanScreen = () => {
         return;
       }
 
-      const { data: results, error } = await supabase
-        .from('license_plate_results')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+      try {
+        const { data: results, error } = await supabase
+          .from('license_plate_results')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-      if (error) {
-        console.error('Polling error:', error);
+        if (error) {
+          console.error('Polling error:', error);
+          attempts++;
+          setTimeout(poll, interval);
+          return;
+        }
+
+        if (!results) {
+          attempts++;
+          setTimeout(poll, interval);
+          return;
+        }
+
+        if (results.status === 'completed') {
+          setIsProcessing(false);
+          if (results.license_plate === 'NO_PLATE_FOUND') {
+            toast({
+              title: "No License Plate Found",
+              description: "Please take another photo where the license plate is clearly visible.",
+              variant: "destructive",
+            });
+            setRetryCount(prev => {
+              const newCount = prev + 1;
+              if (newCount >= 2) {
+                setPhoto(null);
+                return 0;
+              }
+              return newCount;
+            });
+          } else {
+            setDetectedPlate(results.license_plate);
+            setRawText(results.raw_text);
+            setRetryCount(0);
+          }
+          return;
+        }
+
         attempts++;
         setTimeout(poll, interval);
-        return;
+      } catch (error) {
+        console.error('Polling iteration error:', error);
+        attempts++;
+        setTimeout(poll, interval);
       }
-
-      if (results && results.status === 'completed') {
-        setIsProcessing(false);
-        if (results.license_plate === 'NO_PLATE_FOUND') {
-          toast({
-            title: "No License Plate Found",
-            description: "Please take another photo where the license plate is clearly visible.",
-            variant: "destructive",
-          });
-          if (retryCount >= 2) {
-            setRetryCount(0);
-            setPhoto(null);
-          }
-        } else {
-          setDetectedPlate(results.license_plate);
-          setRawText(results.raw_text);
-          setRetryCount(0);
-        }
-        return;
-      }
-
-      attempts++;
-      setTimeout(poll, interval);
     };
 
     await poll();
@@ -180,7 +195,21 @@ const ScanScreen = () => {
 
   const performOCR = async (imageDataUrl: string) => {
     try {
+      setIsProcessing(true);
       console.log('Sending image for OCR processing... Attempt:', retryCount + 1);
+      
+      const { error: insertError } = await supabase
+        .from('license_plate_results')
+        .insert([{ 
+          license_plate: 'PROCESSING',
+          status: 'pending'
+        }]);
+
+      if (insertError) {
+        console.error('Error creating result entry:', insertError);
+        throw insertError;
+      }
+
       const { error } = await supabase.functions.invoke('process-license-plate', {
         body: { image: imageDataUrl }
       });
@@ -190,7 +219,6 @@ const ScanScreen = () => {
         throw error;
       }
 
-      // Start polling for results
       await pollForResults();
       
     } catch (error) {
@@ -198,10 +226,9 @@ const ScanScreen = () => {
       setIsProcessing(false);
       toast({
         title: "Processing Error",
-        description: error.message || "Failed to process the image. Please try again.",
+        description: "Failed to process the image. Please try again.",
         variant: "destructive",
       });
-      throw error;
     }
   };
 
