@@ -1,5 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 import { getLicensePlateModel } from "./models/license-plate.ts"
 
@@ -10,6 +11,8 @@ const corsHeaders = {
 
 const MINDEE_API_KEY = Deno.env.get('MINDEE_API_KEY')
 const MINDEE_WEBHOOK_ID = Deno.env.get('MINDEE_WEBHOOK_ID')
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -17,6 +20,11 @@ serve(async (req) => {
   }
 
   try {
+    const supabaseClient = createClient(
+      SUPABASE_URL ?? '',
+      SUPABASE_SERVICE_ROLE_KEY ?? ''
+    )
+
     // Handle webhook callback from Mindee
     if (req.method === 'POST' && req.headers.get('x-mindee-webhook-id') === MINDEE_WEBHOOK_ID) {
       const webhookData = await req.json();
@@ -31,22 +39,21 @@ serve(async (req) => {
         rawText = webhookData.document.inference.ocr?.raw_text || '';
       }
 
-      // Store the result in Supabase for retrieval
-      const supabaseClient = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      );
-
+      // Store the result in Supabase
       const { error } = await supabaseClient
         .from('license_plate_results')
-        .insert({
+        .update({
           license_plate: licensePlate,
           raw_text: rawText,
           status: 'completed'
-        });
+        })
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1);
 
       if (error) {
         console.error('Error storing license plate result:', error);
+        throw error;
       }
 
       return new Response(JSON.stringify({ success: true }), {
