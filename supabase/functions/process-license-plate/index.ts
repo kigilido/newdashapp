@@ -17,13 +17,38 @@ serve(async (req) => {
   }
 
   try {
+    // Handle webhook callback from Mindee
     if (req.method === 'POST' && req.headers.get('x-mindee-webhook-id') === MINDEE_WEBHOOK_ID) {
-      // Handle webhook callback from Mindee
       const webhookData = await req.json();
       console.log('Received webhook data from Mindee:', webhookData);
-      
-      // Process the webhook data and extract license plate
-      // You'll need to implement this based on the webhook response format
+
+      let licensePlate = 'NO_PLATE_FOUND';
+      let rawText = '';
+
+      // Extract license plate from webhook data
+      if (webhookData.document?.inference?.prediction?.license_plates?.[0]?.value) {
+        licensePlate = webhookData.document.inference.prediction.license_plates[0].value.toUpperCase();
+        rawText = webhookData.document.inference.ocr?.raw_text || '';
+      }
+
+      // Store the result in Supabase for retrieval
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+
+      const { error } = await supabaseClient
+        .from('license_plate_results')
+        .insert({
+          license_plate: licensePlate,
+          raw_text: rawText,
+          status: 'completed'
+        });
+
+      if (error) {
+        console.error('Error storing license plate result:', error);
+      }
+
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -60,7 +85,7 @@ serve(async (req) => {
     
     formData.append('document', blob, 'license_plate.jpg');
 
-    // If webhook ID is configured, add it to the request
+    // Add webhook ID to the request
     if (MINDEE_WEBHOOK_ID) {
       formData.append('webhook_id', MINDEE_WEBHOOK_ID);
     }
@@ -81,7 +106,7 @@ serve(async (req) => {
       throw new Error(`Mindee API error: ${response.status} ${response.statusText}`);
     }
 
-    // For now, return a processing status
+    // Return processing status
     return new Response(
       JSON.stringify({
         status: 'processing',
