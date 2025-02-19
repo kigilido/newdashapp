@@ -25,6 +25,11 @@ serve(async (req) => {
     // Get model configuration
     const model = getLicensePlateModel();
     console.log('Using model:', model.name, model.version);
+    console.log('Model endpoint:', model.endpoint);
+
+    if (!MINDEE_API_KEY) {
+      throw new Error('MINDEE_API_KEY is not configured')
+    }
 
     // Extract base64 data - handle both with and without data URI prefix
     const base64Data = image.includes('base64,') ? image.split('base64,')[1] : image;
