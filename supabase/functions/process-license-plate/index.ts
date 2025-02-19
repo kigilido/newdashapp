@@ -1,89 +1,92 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createWorker } from 'https://cdn.skypack.dev/tesseract.js@4.1.1';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+}
+
+const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const { image } = await req.json();
-    
+    const { image } = await req.json()
+
     if (!image) {
-      throw new Error('No image provided');
+      throw new Error('No image data provided')
     }
 
-    console.log('Starting OCR process...');
+    // Send image to OpenAI Vision API for analysis
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "You are a license plate OCR system. Extract ONLY the license plate number from the image. If you can't find a license plate, respond with 'NO_PLATE_FOUND'. Only extract alphanumeric characters that are clearly visible."
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "What is the license plate number in this image? Return ONLY the plate number, nothing else."
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: image
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 50
+      })
+    })
+
+    const data = await response.json()
     
-    // Create and initialize the Tesseract worker
-    console.log('Creating Tesseract worker...');
-    const worker = await createWorker();
-    
-    try {
-      console.log('Loading language...');
-      await worker.loadLanguage('eng');
-      await worker.initialize('eng');
-      
-      console.log('Setting parameters...');
-      await worker.setParameters({
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-      });
-
-      console.log('Starting recognition...');
-      const { data: { text } } = await worker.recognize(image);
-      console.log('Raw OCR result:', text);
-
-      // Clean and process the text
-      const cleanText = text.replace(/[^A-Z0-9]/g, '').toUpperCase();
-      console.log('Cleaned text:', cleanText);
-      
-      const licensePlateMatch = cleanText.match(/[A-Z0-9]{5,8}/);
-      const licensePlate = licensePlateMatch ? licensePlateMatch[0] : 'NO_PLATE_FOUND';
-      
-      console.log('Extracted license plate:', licensePlate);
-
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          licensePlate, 
-          rawText: text.trim() 
-        }),
-        { 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          } 
-        }
-      );
-
-    } finally {
-      if (worker) {
-        try {
-          await worker.terminate();
-        } catch (error) {
-          console.error('Error terminating worker:', error);
-        }
-      }
+    if (!data.choices || !data.choices[0]?.message?.content) {
+      throw new Error('Invalid response from OCR service')
     }
 
-  } catch (error) {
-    console.error('Error in license plate processing:', error);
+    const extractedText = data.choices[0].message.content.trim()
+    
+    // Clean up the license plate text
+    const licensePlate = extractedText === 'NO_PLATE_FOUND' 
+      ? 'NO_PLATE_FOUND'
+      : extractedText.replace(/[^A-Z0-9]/gi, '').toUpperCase()
+
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message || 'Failed to process image'
+      JSON.stringify({
+        licensePlate,
+        rawText: extractedText,
       }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
-      }
-    );
+      },
+    )
+  } catch (error) {
+    console.error('Error:', error)
+    return new Response(
+      JSON.stringify({
+        error: error.message,
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      },
+    )
   }
-});
+})

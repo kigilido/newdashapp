@@ -15,6 +15,7 @@ const ScanScreen = () => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [detectedPlate, setDetectedPlate] = useState<string | null>(null);
   const [rawText, setRawText] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -122,9 +123,9 @@ const ScanScreen = () => {
     }
   };
 
-  const performOCR = async (imageDataUrl: string) => {
+  const performOCR = async (imageDataUrl: string): Promise<string> => {
     try {
-      console.log('Sending image for OCR processing...');
+      console.log('Sending image for OCR processing... Attempt:', retryCount + 1);
       const { data, error } = await supabase.functions.invoke('process-license-plate', {
         body: { image: imageDataUrl }
       });
@@ -145,8 +146,17 @@ const ScanScreen = () => {
 
       console.log('OCR response:', data);
       setRawText(data.rawText);
+      
+      if (data.licensePlate === 'NO_PLATE_FOUND' && retryCount < 2) {
+        throw new Error('NO_PLATE_FOUND');
+      }
+      
       return data.licensePlate;
     } catch (error) {
+      if (error.message === 'NO_PLATE_FOUND' && retryCount < 2) {
+        setRetryCount(prev => prev + 1);
+        throw error;
+      }
       console.error('OCR error:', error);
       toast({
         title: "Processing Error",
@@ -169,7 +179,9 @@ const ScanScreen = () => {
         allowEditing: false,
         resultType: CameraResultType.DataUrl,
         source: CameraSource.Camera,
-        direction: CameraDirection.Rear
+        direction: CameraDirection.Rear,
+        width: 1920,
+        correctOrientation: true
       });
 
       if (!image.dataUrl) {
@@ -190,13 +202,20 @@ const ScanScreen = () => {
             description: "Please take another photo where the license plate is clearly visible.",
             variant: "destructive",
           });
-          setPhoto(null);
+          if (retryCount >= 2) {
+            setRetryCount(0);
+            setPhoto(null);
+          }
         } else {
           setDetectedPlate(licensePlate);
+          setRetryCount(0);
         }
       } catch (error) {
         console.error('OCR processing error:', error);
-        setPhoto(null);
+        if (retryCount >= 2) {
+          setRetryCount(0);
+          setPhoto(null);
+        }
       }
     } catch (error) {
       console.error('Camera error:', error);
@@ -215,6 +234,7 @@ const ScanScreen = () => {
     setDetectedPlate(null);
     setRawText(null);
     setIsProcessing(false);
+    setRetryCount(0);
   };
 
   return (
