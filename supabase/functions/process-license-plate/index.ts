@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
+import { getLicensePlateModel } from "./models/license-plate.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,6 +22,10 @@ serve(async (req) => {
       throw new Error('No image data provided')
     }
 
+    // Get model configuration
+    const model = getLicensePlateModel();
+    console.log('Using model:', model.name, model.version);
+
     // Extract base64 data - handle both with and without data URI prefix
     const base64Data = image.includes('base64,') ? image.split('base64,')[1] : image;
 
@@ -39,10 +44,17 @@ serve(async (req) => {
     // Append the image file to form data
     formData.append('document', blob, 'license_plate.jpg');
 
-    console.log('Sending request to Mindee API...');
+    // Add any custom parameters from model config
+    if (model.parameters) {
+      Object.entries(model.parameters).forEach(([key, value]) => {
+        formData.append(key, JSON.stringify(value));
+      });
+    }
+
+    console.log('Sending request to Mindee API using model endpoint:', model.endpoint);
 
     // Send image to Mindee API for license plate detection
-    const response = await fetch('https://api.mindee.net/v1/products/mindee/license_plates/v1/predict', {
+    const response = await fetch(model.endpoint, {
       method: 'POST',
       headers: {
         'Authorization': `Token ${MINDEE_API_KEY}`,
@@ -99,7 +111,7 @@ serve(async (req) => {
         error: error.message || 'Internal server error',
       }),
       {
-        status: 200, // Changed to 200 to prevent the non-2xx error
+        status: 200, // Keep 200 to prevent the non-2xx error
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
