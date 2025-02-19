@@ -8,7 +8,7 @@ export interface MindeeModelConfig {
 
 export const DEFAULT_MODEL: MindeeModelConfig = {
   name: 'mindee/license_plates',
-  version: 'v1',
+  version: '1.1',
   endpoint: 'https://api.mindee.net/v1/products/mindee/license_plates/v1/predict'
 };
 
@@ -25,19 +25,23 @@ export const getLicensePlateModel = (): MindeeModelConfig => {
     
     // Validate required fields
     if (!config.name || !config.version || !config.endpoint) {
-      console.error('Invalid model config: missing required fields');
+      console.error('Invalid model config: missing required fields, using default model');
       return DEFAULT_MODEL;
     }
 
-    // Validate endpoint URL
+    // Validate endpoint URL format
+    if (!config.endpoint.startsWith('https://api.mindee.net/')) {
+      console.error('Invalid endpoint URL format, using default model');
+      return DEFAULT_MODEL;
+    }
+
     try {
       new URL(config.endpoint);
+      return config;
     } catch (error) {
-      console.error('Invalid endpoint URL in config:', error);
+      console.error('Invalid endpoint URL:', error);
       return DEFAULT_MODEL;
     }
-
-    return config;
   } catch (error) {
     console.error('Error parsing model config:', error);
     return DEFAULT_MODEL;
