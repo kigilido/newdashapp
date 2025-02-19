@@ -225,6 +225,8 @@ export type Database = {
           created_at: string
           id: string
           license_plate: string
+          mindee_document_id: string | null
+          mindee_job_id: string | null
           raw_text: string | null
           status: string
           updated_at: string
@@ -233,6 +235,8 @@ export type Database = {
           created_at?: string
           id?: string
           license_plate: string
+          mindee_document_id?: string | null
+          mindee_job_id?: string | null
           raw_text?: string | null
           status?: string
           updated_at?: string
@@ -241,6 +245,8 @@ export type Database = {
           created_at?: string
           id?: string
           license_plate?: string
+          mindee_document_id?: string | null
+          mindee_job_id?: string | null
           raw_text?: string | null
           status?: string
           updated_at?: string
