@@ -1,3 +1,4 @@
+
 import { Camera, CameraResultType, CameraDirection, CameraSource } from '@capacitor/camera';
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
@@ -7,6 +8,14 @@ import { useNavigate } from "react-router-dom";
 import { CameraPermissionHandler } from "@/components/camera/CameraPermissionHandler";
 import { PhotoPreview } from "@/components/camera/PhotoPreview";
 import { CameraButton } from "@/components/camera/CameraButton";
+
+// Define the type for our license plate result
+interface LicensePlateResult {
+  license_plate: string;
+  raw_text: string | null;
+  status: 'pending' | 'completed';
+  request_id: string;
+}
 
 const ScanScreen = () => {
   const [photo, setPhoto] = useState<string | null>(null);
@@ -135,7 +144,7 @@ const ScanScreen = () => {
           license_plate: 'PROCESSING',
           status: 'pending',
           request_id: requestId
-        }]);
+        }] as Partial<LicensePlateResult>[]);
 
       if (insertError) {
         console.error('Error creating result entry:', insertError);
@@ -184,7 +193,7 @@ const ScanScreen = () => {
       try {
         const { data: results, error } = await supabase
           .from('license_plate_results')
-          .select('license_plate, raw_text, status')
+          .select<'license_plate_results', LicensePlateResult>('license_plate, raw_text, status')
           .eq('request_id', requestId)
           .eq('status', 'completed')
           .maybeSingle();
