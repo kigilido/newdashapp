@@ -140,11 +140,12 @@ const ScanScreen = () => {
       
       const { error: insertError } = await supabase
         .from('license_plate_results')
-        .insert([{ 
+        .insert({
           license_plate: 'PROCESSING',
           status: 'pending',
-          request_id: requestId
-        }] as Partial<LicensePlateResult>[]);
+          request_id: requestId,
+          raw_text: null
+        });
 
       if (insertError) {
         console.error('Error creating result entry:', insertError);
@@ -193,7 +194,7 @@ const ScanScreen = () => {
       try {
         const { data: results, error } = await supabase
           .from('license_plate_results')
-          .select<'license_plate_results', LicensePlateResult>('license_plate, raw_text, status')
+          .select('*')
           .eq('request_id', requestId)
           .eq('status', 'completed')
           .maybeSingle();
