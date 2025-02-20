@@ -1,4 +1,3 @@
-
 import { Camera, CameraResultType, CameraDirection, CameraSource } from '@capacitor/camera';
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
@@ -8,14 +7,10 @@ import { useNavigate } from "react-router-dom";
 import { CameraPermissionHandler } from "@/components/camera/CameraPermissionHandler";
 import { PhotoPreview } from "@/components/camera/PhotoPreview";
 import { CameraButton } from "@/components/camera/CameraButton";
+import type { Database } from "@/integrations/supabase/types";
 
-// Define the type for our license plate result
-interface LicensePlateResult {
-  license_plate: string;
-  raw_text: string | null;
-  status: 'pending' | 'completed';
-  request_id: string;
-}
+// Define type for our license plate result using the Database type
+type LicensePlateResult = Database['public']['Tables']['license_plate_results']['Row'];
 
 const ScanScreen = () => {
   const [photo, setPhoto] = useState<string | null>(null);
@@ -194,7 +189,7 @@ const ScanScreen = () => {
       try {
         const { data: results, error } = await supabase
           .from('license_plate_results')
-          .select('*')
+          .select()
           .eq('request_id', requestId)
           .eq('status', 'completed')
           .maybeSingle();
