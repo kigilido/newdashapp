@@ -1,4 +1,3 @@
-
 import { Camera, CameraResultType, CameraDirection, CameraSource } from '@capacitor/camera';
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
@@ -123,7 +122,52 @@ const ScanScreen = () => {
     }
   };
 
-  const pollForResults = async (maxAttempts = 30, interval = 2000) => {
+  const performOCR = async (imageDataUrl: string) => {
+    try {
+      setIsProcessing(true);
+      console.log('Sending image for OCR processing... Attempt:', retryCount + 1);
+      
+      const requestId = crypto.randomUUID();
+      
+      const { error: insertError } = await supabase
+        .from('license_plate_results')
+        .insert([{ 
+          license_plate: 'PROCESSING',
+          status: 'pending',
+          request_id: requestId
+        }]);
+
+      if (insertError) {
+        console.error('Error creating result entry:', insertError);
+        throw insertError;
+      }
+
+      const { error } = await supabase.functions.invoke('process-license-plate', {
+        body: { 
+          image: imageDataUrl,
+          requestId: requestId 
+        }
+      });
+
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
+
+      await pollForResults(requestId);
+      
+    } catch (error) {
+      console.error('OCR error:', error);
+      setIsProcessing(false);
+      toast({
+        title: "Processing Error",
+        description: "Failed to process the image. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const pollForResults = async (requestId: string, maxAttempts = 30, interval = 2000) => {
     let attempts = 0;
     
     const poll = async () => {
@@ -141,9 +185,8 @@ const ScanScreen = () => {
         const { data: results, error } = await supabase
           .from('license_plate_results')
           .select('license_plate, raw_text, status')
+          .eq('request_id', requestId)
           .eq('status', 'completed')
-          .order('created_at', { ascending: false })
-          .limit(1)
           .maybeSingle();
 
         if (error) {
@@ -154,12 +197,14 @@ const ScanScreen = () => {
         }
 
         if (!results) {
+          console.log(`Polling attempt ${attempts + 1}: No results yet for request ${requestId}`);
           attempts++;
           setTimeout(poll, interval);
           return;
         }
 
         setIsProcessing(false);
+        console.log('Results found:', results);
         
         if (results.license_plate === 'NO_PLATE_FOUND') {
           toast({
@@ -188,45 +233,6 @@ const ScanScreen = () => {
     };
 
     await poll();
-  };
-
-  const performOCR = async (imageDataUrl: string) => {
-    try {
-      setIsProcessing(true);
-      console.log('Sending image for OCR processing... Attempt:', retryCount + 1);
-      
-      const { error: insertError } = await supabase
-        .from('license_plate_results')
-        .insert([{ 
-          license_plate: 'PROCESSING',
-          status: 'pending'
-        }]);
-
-      if (insertError) {
-        console.error('Error creating result entry:', insertError);
-        throw insertError;
-      }
-
-      const { error } = await supabase.functions.invoke('process-license-plate', {
-        body: { image: imageDataUrl }
-      });
-
-      if (error) {
-        console.error('Supabase function error:', error);
-        throw error;
-      }
-
-      await pollForResults();
-      
-    } catch (error) {
-      console.error('OCR error:', error);
-      setIsProcessing(false);
-      toast({
-        title: "Processing Error",
-        description: "Failed to process the image. Please try again.",
-        variant: "destructive",
-      });
-    }
   };
 
   const takePicture = async () => {
