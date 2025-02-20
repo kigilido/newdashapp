@@ -1,3 +1,4 @@
+
 import { Camera, CameraResultType, CameraDirection, CameraSource } from '@capacitor/camera';
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
@@ -9,8 +10,18 @@ import { PhotoPreview } from "@/components/camera/PhotoPreview";
 import { CameraButton } from "@/components/camera/CameraButton";
 import type { Database } from "@/integrations/supabase/types";
 
-// Define type for our license plate result using the Database type
-type LicensePlateResult = Database['public']['Tables']['license_plate_results']['Row'];
+// Define type for our license plate result
+type LicensePlateResult = {
+  id: string;
+  created_at: string;
+  license_plate: string;
+  status: string;
+  raw_text: string | null;
+  request_id: string;
+  mindee_job_id: string | null;
+  mindee_document_id: string | null;
+  updated_at: string;
+}
 
 const ScanScreen = () => {
   const [photo, setPhoto] = useState<string | null>(null);
@@ -187,12 +198,15 @@ const ScanScreen = () => {
       }
 
       try {
-        const { data: results, error } = await supabase
+        const { data, error } = await supabase
           .from('license_plate_results')
           .select()
           .eq('request_id', requestId)
           .eq('status', 'completed')
-          .maybeSingle();
+          .limit(1)
+          .single();
+
+        const results = data as LicensePlateResult;
 
         if (error) {
           console.error('Polling error:', error);
