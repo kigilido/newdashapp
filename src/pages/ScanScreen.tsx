@@ -198,15 +198,14 @@ const ScanScreen = () => {
       }
 
       try {
+        // Simplified query with explicit type
         const { data, error } = await supabase
           .from('license_plate_results')
-          .select()
+          .select('*')
           .eq('request_id', requestId)
           .eq('status', 'completed')
           .limit(1)
           .single();
-
-        const results = data as LicensePlateResult;
 
         if (error) {
           console.error('Polling error:', error);
@@ -215,13 +214,14 @@ const ScanScreen = () => {
           return;
         }
 
-        if (!results) {
+        if (!data) {
           console.log(`Polling attempt ${attempts + 1}: No results yet for request ${requestId}`);
           attempts++;
           setTimeout(poll, interval);
           return;
         }
 
+        const results = data as LicensePlateResult;
         setIsProcessing(false);
         console.log('Results found:', results);
         
