@@ -101,9 +101,7 @@ serve(async (req) => {
           mindee_job_id: webhookData.job?.id,
           mindee_document_id: webhookData.document?.id
         })
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .eq('mindee_job_id', webhookData.job?.id);
 
       if (error) {
         console.error('Error storing license plate result:', error);
@@ -115,10 +113,14 @@ serve(async (req) => {
       });
     }
 
-    const { image } = await req.json();
+    const { image, requestId } = await req.json();
 
     if (!image) {
       throw new Error('No image data provided');
+    }
+
+    if (!requestId) {
+      throw new Error('No request ID provided');
     }
 
     const model = getLicensePlateModel();
@@ -170,19 +172,18 @@ serve(async (req) => {
     const result = await response.json();
     console.log('Mindee API initial response:', result);
 
-    // Store the job_id and document_id in the database
-    const { error: insertError } = await supabaseClient
+    // Update the existing record with job_id and document_id
+    const { error: updateError } = await supabaseClient
       .from('license_plate_results')
-      .insert([{ 
-        license_plate: 'PROCESSING',
-        status: 'pending',
+      .update({ 
         mindee_job_id: result.job?.id,
         mindee_document_id: result.document?.id
-      }]);
+      })
+      .eq('request_id', requestId);
 
-    if (insertError) {
-      console.error('Error creating result entry:', insertError);
-      throw insertError;
+    if (updateError) {
+      console.error('Error updating result entry:', updateError);
+      throw updateError;
     }
 
     return new Response(

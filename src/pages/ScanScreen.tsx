@@ -17,10 +17,11 @@ type LicensePlateResult = {
   license_plate: string;
   status: string;
   raw_text: string | null;
-  request_id: string;
+  request_id?: string;
   mindee_job_id: string | null;
   mindee_document_id: string | null;
   updated_at: string;
+  user_id: string;
 }
 
 const ScanScreen = () => {
@@ -144,13 +145,19 @@ const ScanScreen = () => {
       
       const requestId = crypto.randomUUID();
       
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+      
       const { error: insertError } = await supabase
         .from('license_plate_results')
         .insert({
           license_plate: 'PROCESSING',
           status: 'pending',
           request_id: requestId,
-          raw_text: null
+          raw_text: null,
+          user_id: user.id
         });
 
       if (insertError) {
@@ -198,10 +205,10 @@ const ScanScreen = () => {
       }
 
       try {
-        // Simplified query with explicit type
+        // Query with explicit column selection to avoid type inference issues
         const { data, error } = await supabase
           .from('license_plate_results')
-          .select('*')
+          .select('id, created_at, license_plate, status, raw_text, request_id, mindee_job_id, mindee_document_id, updated_at, user_id')
           .eq('request_id', requestId)
           .eq('status', 'completed')
           .limit(1)
